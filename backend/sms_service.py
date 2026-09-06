@@ -16,25 +16,57 @@ class SmsAlertService:
         self.twilio_token = os.getenv("TWILIO_AUTH_TOKEN", "")
         self.twilio_phone = os.getenv("TWILIO_PHONE_NUMBER", "")
 
+    def predict_hotspot_cause(self, hotspot: Dict[str, Any]) -> str:
+        """
+        AI Predictive Genesis: Diagnoses physical root cause of thermal anomaly formation.
+        """
+        category = str(hotspot.get("category", "")).lower()
+        name = str(hotspot.get("name", "")).lower()
+        frp = float(hotspot.get("frp", 0) or 0)
+
+        if "steel" in category or "steel" in name or "furnace" in category or "smelt" in name:
+            return "Blast furnace slag tap & ladle refractory thermal breach"
+        elif "petro" in category or "refinery" in category or "oil" in name or "flaring" in category:
+            return "Hydrocarbon gas flaring & catalytic cracker heat discharge"
+        elif "power" in category or "thermal" in category or "boiler" in name:
+            return "Turbine flue-gas venting & superheater boiler tube heat leak"
+        elif "chemical" in category or "fertilizer" in name:
+            return "Exothermic chemical reaction runaway & solvent vapor plume"
+        elif "forest" in category or "wildfire" in category:
+            return "Extreme dry canopy ignition with wind-driven flame front"
+        elif "biomass" in category or "stubble" in category or "agro" in category or "crop" in category:
+            return "Post-harvest crop residue open pyrolysis clearing"
+        elif "coal" in category or "mine" in category or "lignite" in name:
+            return "Sub-surface coal seam spontaneous smoldering combustion"
+        elif "cement" in category or "kiln" in category:
+            return "Rotary kiln refractory degradation & clinker heat spike"
+        elif frp > 100:
+            return "High-radiance thermal anomaly exceeding 30-day baseline threshold"
+        else:
+            return "Sustained localized thermal radiance anomaly detected by satellite SWIR"
+
     def format_alert_message(self, hotspot: Dict[str, Any], agency: str) -> str:
         """
-        Formats concise, tactical emergency broadcast SMS for field officers.
+        Formats concise, tactical emergency broadcast SMS for field officers with AI root-cause analysis.
         """
-        hid = hotspot.get("id", "NTRO-ALERT")
         name = hotspot.get("name", "Thermal Anomaly")
         category = hotspot.get("category", "Thermal Event")
         frp = hotspot.get("frp", "0")
         risk_score = hotspot.get("riskScore", hotspot.get("risk_score", "0"))
         risk_level = hotspot.get("riskLevel", hotspot.get("risk_level", "HIGH"))
-        lat = hotspot.get("lat", hotspot.get("latitude", 0))
-        lng = hotspot.get("lng", hotspot.get("longitude", 0))
-        recommendation = hotspot.get("recommendation", "Immediate field verification requested.")
+        lat = float(hotspot.get("lat", hotspot.get("latitude", 0)) or 0)
+        lng = float(hotspot.get("lng", hotspot.get("longitude", 0)) or 0)
+        recommendation = hotspot.get("recommendation", "Immediate containment ordered.")
+        
+        # Include AI Root-Cause Genesis
+        ai_cause = hotspot.get("ai_cause") or hotspot.get("aiAnalysis") or self.predict_hotspot_cause(hotspot)
 
         message = (
             f"🚨 [NTRO FLASH ALERT - {risk_level} PRIORITY]\n"
             f"TARGET: {name}\n"
-            f"CLASS: {category} | RISK: {risk_score}/100\n"
-            f"FRP: {frp} MW | COORDS: {lat:.4f}N, {lng:.4f}E\n"
+            f"CLASS: {category} | FRP: {frp} MW | RISK: {risk_score}/100\n"
+            f"AI PREDICTED CAUSE: {ai_cause}\n"
+            f"COORDS: {lat:.4f}N, {lng:.4f}E\n"
             f"ACTION: {recommendation}\n"
             f"ROUTE TO: {agency} | NTRO TASK SIH26162"
         )

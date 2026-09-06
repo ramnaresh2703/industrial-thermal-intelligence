@@ -27,14 +27,14 @@ interface HotspotDetailsModalProps {
   hotspot: Hotspot | null;
   onClose: () => void;
   onNavigateToShap: (hotspot: Hotspot) => void;
-  onDirectSms?: (hotspot: Hotspot) => void;
+  onOpenSmsModal?: (hotspot: Hotspot) => void;
 }
 
 export const HotspotDetailsModal: React.FC<HotspotDetailsModalProps> = ({
   hotspot,
   onClose,
   onNavigateToShap,
-  onDirectSms,
+  onOpenSmsModal,
 }) => {
   const [copiedCoords, setCopiedCoords] = useState(false);
   const [dispatchStatus, setDispatchStatus] = useState<'idle' | 'dispatching' | 'dispatched'>('idle');
@@ -295,23 +295,17 @@ export const HotspotDetailsModal: React.FC<HotspotDetailsModalProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              {onDirectSms && (
+              {onOpenSmsModal && (
                 <button
                   onClick={() => {
                     soundFx.playAlert();
-                    onDirectSms(hotspot);
-                    setSmsSent(true);
-                    setTimeout(() => setSmsSent(false), 3000);
+                    onOpenSmsModal(hotspot);
                   }}
-                  className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase transition-all shadow-md ${
-                    smsSent 
-                      ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500' 
-                      : 'bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/40 hover:to-blue-600/40 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400'
-                  }`}
-                  title="Directly transmit tactical SMS alert to Commander mobile phone"
+                  className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase transition-all shadow-md bg-gradient-to-r from-critical/20 to-thermal/20 hover:from-critical hover:to-thermal text-critical-light hover:text-white border border-critical/40 hover:border-critical"
+                  title="Send tactical SMS alert with AI root-cause analysis"
                 >
-                  <Smartphone className="w-4 h-4 text-cyan-400" />
-                  <span>{smsSent ? 'Transmitted to Phone ✓' : 'Direct Transmit SMS'}</span>
+                  <Smartphone className="w-4 h-4 text-critical-light" />
+                  <span>Send SMS (with AI Analysis)</span>
                 </button>
               )}
 

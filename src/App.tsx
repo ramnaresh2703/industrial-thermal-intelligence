@@ -3,6 +3,7 @@ import { Navbar } from './components/Navbar';
 import { HeroSection } from './components/HeroSection';
 import { MapDashboard } from './components/MapDashboard';
 import { HotspotDetailsModal } from './components/HotspotDetailsModal';
+import { SmsAlertModal } from './components/SmsAlertModal';
 import { ExplainabilityView } from './components/ExplainabilityView';
 import { AnalyticsView } from './components/AnalyticsView';
 import { AboutProjectView } from './components/AboutProjectView';
@@ -32,8 +33,9 @@ export function App() {
   const [activeTab, setActiveTab] = useState<string>('home');
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [smsModalHotspot, setSmsModalHotspot] = useState<Hotspot | null>(null);
   
-  // Tactical HUD Direct SMS Notification State (No Popup Modal Box)
+  // Tactical HUD Direct SMS Notification State
   const [smsNotification, setSmsNotification] = useState<DirectSmsNotification | null>(null);
 
   // Backend connection status
@@ -56,6 +58,10 @@ export function App() {
       setSelectedHotspot(spot);
       setModalOpen(true);
     }
+  };
+
+  const handleOpenSmsModal = (hotspot: Hotspot) => {
+    setSmsModalHotspot(hotspot);
   };
 
   // Direct Telco Cellular SMS Dispatch (Zero-Popup, Transmits Straight to Mobile Phone)
@@ -237,7 +243,7 @@ export function App() {
         {activeTab === 'dashboard' && (
           <MapDashboard
             onSelectHotspot={handleSelectHotspot}
-            onDirectSms={handleDirectSmsDispatch}
+            onOpenSmsModal={handleOpenSmsModal}
             selectedHotspot={selectedHotspot}
           />
         )}
@@ -270,7 +276,15 @@ export function App() {
           hotspot={selectedHotspot}
           onClose={() => setModalOpen(false)}
           onNavigateToShap={handleNavigateToShap}
-          onDirectSms={handleDirectSmsDispatch}
+          onOpenSmsModal={handleOpenSmsModal}
+        />
+      )}
+
+      {/* Tactical Emergency SMS Dispatch Modal (With AI Root-Cause Prediction) */}
+      {smsModalHotspot && (
+        <SmsAlertModal
+          hotspot={smsModalHotspot}
+          onClose={() => setSmsModalHotspot(null)}
         />
       )}
     </div>
