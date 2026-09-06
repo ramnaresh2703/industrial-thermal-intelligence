@@ -10,7 +10,8 @@ import {
   ShieldAlert, 
   Activity, 
   Clock,
-  Crosshair
+  Crosshair,
+  Smartphone
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
@@ -28,6 +29,10 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [currentTime, setCurrentTime] = useState<string>('');
   const [timeMode, setTimeMode] = useState<'IST' | 'UTC'>('IST');
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [commanderPhone, setCommanderPhone] = useState(() => 
+    localStorage.getItem('ntro_commander_phone') || '+91 98765 43210'
+  );
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
 
   useEffect(() => {
     const updateTimer = () => {
@@ -86,6 +91,40 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         <div className="flex items-center space-x-3">
+          {/* Commander Alert Mobile Indicator */}
+          <div className="flex items-center space-x-1.5 bg-cyan-950/40 border border-cyan-500/40 px-2.5 py-0.5 rounded-lg text-[10px]">
+            <Smartphone className="w-3 h-3 text-cyan-400" />
+            <span className="text-slate-400 hidden sm:inline">ALERT MOBILE:</span>
+            {isEditingPhone ? (
+              <input
+                type="tel"
+                value={commanderPhone}
+                onChange={(e) => setCommanderPhone(e.target.value)}
+                onBlur={() => {
+                  setIsEditingPhone(false);
+                  localStorage.setItem('ntro_commander_phone', commanderPhone);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setIsEditingPhone(false);
+                    localStorage.setItem('ntro_commander_phone', commanderPhone);
+                  }
+                }}
+                className="bg-black/90 border border-cyan-400 rounded px-1 text-white text-[10px] focus:outline-none w-28"
+                autoFocus
+              />
+            ) : (
+              <span 
+                onClick={() => setIsEditingPhone(true)}
+                className="text-cyan-300 font-bold hover:underline cursor-pointer flex items-center space-x-1"
+                title="Click to edit mobile number for direct SMS alerts"
+              >
+                <span>{commanderPhone}</span>
+                <span className="text-[9px] text-emerald-400 font-semibold">● LIVE</span>
+              </span>
+            )}
+          </div>
+
           <div 
             onClick={() => setTimeMode(m => m === 'IST' ? 'UTC' : 'IST')}
             className="flex items-center space-x-1 cursor-pointer hover:text-white transition-colors bg-white/5 px-2 py-0.5 rounded"

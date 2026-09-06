@@ -33,7 +33,7 @@ import { soundFx } from '../utils/audio';
 
 interface MapDashboardProps {
   onSelectHotspot: (hotspot: Hotspot) => void;
-  onOpenSmsModal: (hotspot: Hotspot) => void;
+  onDirectSms: (hotspot: Hotspot) => void;
   selectedHotspot: Hotspot | null;
 }
 
@@ -48,7 +48,7 @@ const MapController: React.FC<{ center: [number, number]; zoom: number }> = ({ c
 
 export const MapDashboard: React.FC<MapDashboardProps> = ({ 
   onSelectHotspot, 
-  onOpenSmsModal,
+  onDirectSms,
   selectedHotspot 
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -56,7 +56,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   const [selectedRisk, setSelectedRisk] = useState<string>('ALL');
   const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [minFRP, setMinFRP] = useState<number>(0);
-  const [isHeatmapMode, setIsHeatmapMode] = useState<boolean>(false);
+  const [isHeatmapMode, setIsHeatmapMode] = useState<boolean>(true);
   
   // Basemap switcher: 'satellite' | 'esri-dark' | 'topo'
   const [basemapMode, setBasemapMode] = useState<'satellite' | 'esri-dark' | 'topo'>('satellite');
@@ -117,22 +117,26 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
     });
   }, [allAvailableHotspots, searchQuery, selectedCategory, selectedRisk, selectedRegion, minFRP]);
 
+  // Automatically downlink live NASA satellite data on component mount
+  useEffect(() => {
+    handleSyncLiveFirms();
+  }, []);
+
   // Trigger live satellite downlink from backend with user's NASA FIRMS key
   const handleSyncLiveFirms = async () => {
     setIsSyncingFirms(true);
-    soundFx.playAlert();
     try {
       const data = await fetchLiveFirmsAnomalies('IND', 3);
       if (data && data.anomalies && data.anomalies.length > 0) {
         soundFx.playSuccess();
         setFirmsSyncCount(data.anomalies.length);
         
-        // Transform live NASA detections into Hotspot format
-        const converted = data.anomalies.slice(0, 30).map((anom: any, idx: number) => ({
+        // Transform live NASA detections into Hotspot format (up to 250 detections across India)
+        const converted = data.anomalies.slice(0, 250).map((anom: any, idx: number) => ({
           id: `NASA-FIRMS-${idx + 1}`,
-          name: anom.target || `NASA Live Satellite Thermal Point #${idx + 1}`,
+          name: anom.target || `NASA VIIRS Sat-Detect #${idx + 1}`,
           location: `Lat ${anom.latitude.toFixed(3)}, Lng ${anom.longitude.toFixed(3)}`,
-          district: 'India Sector',
+          district: 'Live Orbit Zone',
           state: 'National Territory',
           region: 'All India' as const,
           lat: anom.latitude,
@@ -151,7 +155,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           scanAngle: 10.5,
           landCover: 'Geospatial Radar Mesh',
           windSpeed: '14 km/h',
-          recommendation: 'Autonomous satellite detection. Dispatched for field verification.',
+          recommendation: 'Autonomous satellite detection. Transmitted for tactical verification.',
           status: 'Active Flare' as const,
           aiReasoning: 'Real-time thermal anomaly detected by NASA VIIRS 375m sensor downlink.',
           shapValues: [
@@ -163,7 +167,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
         setLiveSatelliteAnomalies(converted);
       }
     } catch (e) {
-      console.warn('NASA FIRMS sync note:', e);
+      console.warn('NASA FIRMS auto-downlink:', e);
     } finally {
       setIsSyncingFirms(false);
     }
@@ -423,13 +427,13 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           soundFx.playAlert();
-                          onOpenSmsModal(spot);
+                          onDirectSms(spot);
                         }}
-                        className="px-2 py-0.5 rounded bg-critical/20 hover:bg-critical text-critical-light hover:text-white text-[10px] font-mono font-bold flex items-center space-x-1 transition-all border border-critical/40 shadow-sm"
-                        title="Dispatch instant SMS alert to mobile"
+                        className="px-2 py-0.5 rounded bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white text-[10px] font-mono font-bold flex items-center space-x-1 transition-all border border-cyan-500/40 shadow-sm"
+                        title="Transmit direct SMS alert to Commander mobile phone"
                       >
-                        <Smartphone className="w-3 h-3" />
-                        <span>SMS</span>
+                        <Smartphone className="w-3 h-3 text-cyan-400" />
+                        <span>Direct SMS</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -717,13 +721,13 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                         onClick={(e) => {
                           e.stopPropagation();
                           soundFx.playAlert();
-                          onOpenSmsModal(spot);
+                          onDirectSms(spot);
                         }}
-                        className="flex-1 py-1.5 px-2 bg-critical/20 hover:bg-critical text-critical-light hover:text-white rounded font-mono font-bold text-[11px] flex items-center justify-center space-x-1 transition-all border border-critical/40"
-                        title="Transmit emergency SMS to a phone number"
+                        className="flex-1 py-1.5 px-2 bg-gradient-to-r from-cyan-600/30 to-blue-600/30 hover:from-cyan-600 hover:to-blue-600 text-cyan-300 hover:text-white rounded font-mono font-bold text-[11px] flex items-center justify-center space-x-1.5 transition-all border border-cyan-500/40 shadow-sm"
+                        title="Directly transmit tactical SMS to Commander mobile phone"
                       >
-                        <Smartphone className="w-3.5 h-3.5" />
-                        <span>Send SMS</span>
+                        <Smartphone className="w-3.5 h-3.5 text-cyan-400" />
+                        <span>Direct SMS</span>
                       </button>
 
                       <button

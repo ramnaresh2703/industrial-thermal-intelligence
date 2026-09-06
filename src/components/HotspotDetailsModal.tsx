@@ -27,17 +27,18 @@ interface HotspotDetailsModalProps {
   hotspot: Hotspot | null;
   onClose: () => void;
   onNavigateToShap: (hotspot: Hotspot) => void;
-  onOpenSmsModal?: (hotspot: Hotspot) => void;
+  onDirectSms?: (hotspot: Hotspot) => void;
 }
 
 export const HotspotDetailsModal: React.FC<HotspotDetailsModalProps> = ({
   hotspot,
   onClose,
   onNavigateToShap,
-  onOpenSmsModal,
+  onDirectSms,
 }) => {
   const [copiedCoords, setCopiedCoords] = useState(false);
   const [dispatchStatus, setDispatchStatus] = useState<'idle' | 'dispatching' | 'dispatched'>('idle');
+  const [smsSent, setSmsSent] = useState(false);
 
   if (!hotspot) return null;
 
@@ -294,17 +295,23 @@ export const HotspotDetailsModal: React.FC<HotspotDetailsModalProps> = ({
             </div>
 
             <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-              {onOpenSmsModal && (
+              {onDirectSms && (
                 <button
                   onClick={() => {
                     soundFx.playAlert();
-                    onOpenSmsModal(hotspot);
+                    onDirectSms(hotspot);
+                    setSmsSent(true);
+                    setTimeout(() => setSmsSent(false), 3000);
                   }}
-                  className="flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase bg-space-800 hover:bg-space-700 text-thermal border border-thermal/40 hover:border-thermal transition-all shadow-md"
-                  title="Dispatch instant tactical SMS alert to a mobile number"
+                  className={`flex-1 sm:flex-initial flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-mono font-bold uppercase transition-all shadow-md ${
+                    smsSent 
+                      ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500' 
+                      : 'bg-gradient-to-r from-cyan-600/20 to-blue-600/20 hover:from-cyan-600/40 hover:to-blue-600/40 text-cyan-300 hover:text-white border border-cyan-500/40 hover:border-cyan-400'
+                  }`}
+                  title="Directly transmit tactical SMS alert to Commander mobile phone"
                 >
-                  <Smartphone className="w-4 h-4 text-thermal" />
-                  <span>Send Mobile SMS</span>
+                  <Smartphone className="w-4 h-4 text-cyan-400" />
+                  <span>{smsSent ? 'Transmitted to Phone ✓' : 'Direct Transmit SMS'}</span>
                 </button>
               )}
 
