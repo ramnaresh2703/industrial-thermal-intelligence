@@ -56,7 +56,8 @@ class SmsAlertRequest(BaseModel):
     hotspot: Dict[str, Any] = Field(..., description="Hotspot telemetry object")
     api_key: Optional[str] = Field(None, description="Optional Fast2SMS or gateway API key")
 
-@app.get("/")
+@app.get("/api")
+@app.get("/api/health")
 def read_root():
     return {
         "status": "ONLINE",
@@ -141,6 +142,26 @@ def get_stats():
         "triage_latency": "< 90s",
         "area_scanned_km2": "14,842,500"
     }
+
+# ==================== SERVE PRODUCTION FRONTEND ====================
+import os
+from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse
+
+dist_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dist"))
+if os.path.exists(dist_dir):
+    assets_dir = os.path.join(dist_dir, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+    @app.api_route("/{full_path:path}", methods=["GET", "HEAD"])
+    async def serve_react_app(full_path: str):
+        if full_path.startswith("api"):
+            raise HTTPException(status_code=404, detail="API route not found")
+        file_path = os.path.join(dist_dir, full_path)
+        if full_path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(dist_dir, "index.html"))
 
 if __name__ == "__main__":
     import uvicorn
