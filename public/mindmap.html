@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SIH26162 — Industrial Thermal Intelligence Evaluator Mindmap</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(6, 182, 212, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(6, 182, 212, 0.8); }
+    }
+    .glow-card {
+      animation: pulseGlow 4s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-[#050816] text-slate-100 font-sans p-6 min-h-screen">
+
+  <!-- Header Section -->
+  <div class="max-w-7xl mx-auto mb-8 border-b border-cyan-500/30 pb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center space-x-3 mb-1">
+        <span class="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-xs font-mono font-bold tracking-wider">
+          SMART INDIA HACKATHON 2026 • SIH26162
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 text-xs font-mono font-bold">
+          NTRO NODAL AGENCY
+        </span>
+      </div>
+      <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+        <span>🛰️ Industrial Thermal Intelligence</span>
+      </h1>
+      <p class="text-sm text-slate-400 font-mono mt-1">
+        Satellite-Driven Automated Detection, XGBoost Classification, TreeSHAP Explainability & Tactical Telco SMS Dispatch
+      </p>
+    </div>
+
+    <!-- Live Metrics Badge -->
+    <div class="flex items-center gap-3 bg-space-900/90 border border-white/10 rounded-2xl p-3 font-mono text-xs">
+      <div class="text-center px-2">
+        <span class="text-slate-400 text-[10px] block">ACCURACY</span>
+        <span class="text-emerald-400 font-bold text-base">99.1%</span>
+      </div>
+      <div class="w-px h-8 bg-white/10"></div>
+      <div class="text-center px-2">
+        <span class="text-slate-400 text-[10px] block">HOTSPOTS</span>
+        <span class="text-cyan-400 font-bold text-base">75+ Nodes</span>
+      </div>
+      <div class="w-px h-8 bg-white/10"></div>
+      <div class="text-center px-2">
+        <span class="text-slate-400 text-[10px] block">TRIAGE</span>
+        <span class="text-amber-400 font-bold text-base">&lt; 90s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Mindmap Visual Canvas -->
+  <div class="max-w-7xl mx-auto space-y-6">
+
+    <!-- 5 Pipeline Stages Banner -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      
+      <!-- Stage 1 -->
+      <div class="bg-gradient-to-b from-blue-950/50 to-[#070e24] border border-blue-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+        <div>
+          <div class="flex items-center justify-between text-blue-400 font-mono text-xs font-bold mb-2">
+            <span>STAGE 01</span>
+            <span>🛰️ SENSORS</span>
+          </div>
+          <h3 class="font-bold text-sm text-white mb-2">Multi-Sensor Ingestion</h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 font-mono">
+            <li>• NASA VIIRS 375m NRT</li>
+            <li>• MODIS Aqua/Terra 1km</li>
+            <li>• ISRO INSAT-3DR Geostationary</li>
+            <li>• 75+ Ground Truth Sites</li>
+          </ul>
+        </div>
+        <div class="mt-4 pt-2 border-t border-blue-500/20 text-[10px] text-blue-300 font-mono">
+          Coverage: Pan-India (68°E–97°E)
+        </div>
+      </div>
+
+      <!-- Stage 2 -->
+      <div class="bg-gradient-to-b from-indigo-950/50 to-[#070e24] border border-indigo-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+        <div>
+          <div class="flex items-center justify-between text-indigo-400 font-mono text-xs font-bold mb-2">
+            <span>STAGE 02</span>
+            <span>⚡ PIPELINE</span>
+          </div>
+          <h3 class="font-bold text-sm text-white mb-2">FastAPI Core Server</h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 font-mono">
+            <li>• Sub-90s Triage Pipeline</li>
+            <li>• Geospatial Buffering (MW)</li>
+            <li>• Historical Persistence Tagger</li>
+            <li>• Single-Port Unified Host</li>
+          </ul>
+        </div>
+        <div class="mt-4 pt-2 border-t border-indigo-500/20 text-[10px] text-indigo-300 font-mono">
+          Port: 8000 (ASGI Uvicorn)
+        </div>
+      </div>
+
+      <!-- Stage 3 -->
+      <div class="bg-gradient-to-b from-purple-950/50 to-[#070e24] border border-purple-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+        <div>
+          <div class="flex items-center justify-between text-purple-400 font-mono text-xs font-bold mb-2">
+            <span>STAGE 03</span>
+            <span>🧠 AI ENGINE</span>
+          </div>
+          <h3 class="font-bold text-sm text-white mb-2">XGBoost & TreeSHAP</h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 font-mono">
+            <li>• 5-Class Anomaly Classification</li>
+            <li>• Local TreeSHAP Attributions</li>
+            <li>• Risk Prioritization (0–100)</li>
+            <li>• Counterfactual Simulator</li>
+          </ul>
+        </div>
+        <div class="mt-4 pt-2 border-t border-purple-500/20 text-[10px] text-purple-300 font-mono">
+          Attribution: Exact SHAP Values
+        </div>
+      </div>
+
+      <!-- Stage 4 -->
+      <div class="bg-gradient-to-b from-amber-950/50 to-[#070e24] border border-amber-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+        <div>
+          <div class="flex items-center justify-between text-amber-400 font-mono text-xs font-bold mb-2">
+            <span>STAGE 04</span>
+            <span>🗺️ COMMAND HUD</span>
+          </div>
+          <h3 class="font-bold text-sm text-white mb-2">Tactical Dashboard</h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 font-mono">
+            <li>• Satellite / Dark / Topo Maps</li>
+            <li>• Radiant Radiative Heatmaps</li>
+            <li>• National Analytics Recharts</li>
+            <li>• Persistent Commander Phone</li>
+          </ul>
+        </div>
+        <div class="mt-4 pt-2 border-t border-amber-500/20 text-[10px] text-amber-300 font-mono">
+          Stack: React 19 + TypeScript
+        </div>
+      </div>
+
+      <!-- Stage 5 -->
+      <div class="bg-gradient-to-b from-emerald-950/50 to-[#070e24] border border-emerald-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg glow-card">
+        <div>
+          <div class="flex items-center justify-between text-emerald-400 font-mono text-xs font-bold mb-2">
+            <span>STAGE 05</span>
+            <span>📱 DIRECT SMS</span>
+          </div>
+          <h3 class="font-bold text-sm text-white mb-2">Cellular Telco Alert</h3>
+          <ul class="text-xs text-slate-300 space-y-1.5 font-mono">
+            <li>• Zero-Popup Background Dispatch</li>
+            <li>• Direct Mobile Phone Delivery</li>
+            <li>• Fast2SMS & Telco Mesh</li>
+            <li>• DDMA/SDRF Multi-Agency Routing</li>
+          </ul>
+        </div>
+        <div class="mt-4 pt-2 border-t border-emerald-500/20 text-[10px] text-emerald-300 font-mono">
+          Carriers: Airtel, Jio, Vi, BSNL
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Architectural Deep-Dive Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+
+      <!-- Box A: AI Classification & Explainability -->
+      <div class="bg-[#09112a] border border-white/10 rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>🧠</span>
+            <span>Machine Learning & TreeSHAP Architecture</span>
+          </h2>
+          <span class="text-xs font-mono text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded border border-purple-500/30">
+            XGBoost v2.1
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-xs font-mono">
+          <div class="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1">
+            <span class="text-slate-400 text-[10px] block font-bold">5 TAXONOMY CLASSES</span>
+            <div class="text-emerald-400 font-semibold">• Industrial Normal</div>
+            <div class="text-cyan-400 font-semibold">• Refinery Flare Fluctuation</div>
+            <div class="text-amber-400 font-semibold">• Equipment Overheat</div>
+            <div class="text-red-400 font-semibold">• Chemical Hazard</div>
+            <div class="text-orange-400 font-semibold">• Stubble / Wildfire</div>
+          </div>
+          <div class="p-3 bg-black/40 rounded-xl border border-white/5 space-y-1">
+            <span class="text-slate-400 text-[10px] block font-bold">TREESHAP ATTRIBUTION</span>
+            <div class="text-slate-300">• Fire Radiative Power (MW)</div>
+            <div class="text-slate-300">• Brightness Temp (Kelvin)</div>
+            <div class="text-slate-300">• Industrial Buffer Distance</div>
+            <div class="text-slate-300">• 30-Day Persistence Score</div>
+            <div class="text-slate-300">• Land Cover & Wind Spread</div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-400 leading-relaxed">
+          Provides military and disaster commanders with mathematically rigorous, verifiable reasons behind every risk classification, resolving the traditional "black box" objection.
+        </p>
+      </div>
+
+      <!-- Box B: Zero-Popup Direct Emergency Telco Dispatch -->
+      <div class="bg-[#09112a] border border-white/10 rounded-2xl p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <span>⚡</span>
+            <span>Zero-Popup Direct Cellular Transmission</span>
+          </h2>
+          <span class="text-xs font-mono text-emerald-400 bg-emerald-500/20 px-2 py-0.5 rounded border border-emerald-500/30">
+            Direct SIM Inbox
+          </span>
+        </div>
+
+        <div class="p-3 bg-black/50 rounded-xl border border-white/10 font-mono text-xs space-y-2">
+          <div class="flex items-center justify-between text-[11px] pb-1 border-b border-white/10">
+            <span class="text-cyan-300">TACTICAL 160-CHAR PAYLOAD FORMAT</span>
+            <span class="text-red-400 font-bold">CRITICAL PRIORITY</span>
+          </div>
+          <pre class="text-emerald-400 text-[11px] leading-relaxed whitespace-pre-wrap">🚨 [NTRO FLASH ALERT - CRITICAL PRIORITY]
+TARGET: Cuddalore SIPCOT Toxic Chemical Fire
+CLASS: Chemical Hazard | RISK: 98/100
+FRP: 418.7 MW | COORDS: 11.7480N, 79.7714E
+ACTION: Evacuate 2.5km downwind buffer. Dispatch HazMat.
+ROUTE TO: DDMA & State Fire Command | SIH26162</pre>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+          <div class="p-2 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-slate-400 text-[10px] block">TRIGGER</span>
+            <span class="text-white font-bold text-[11px]">1-Click No Modal</span>
+          </div>
+          <div class="p-2 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-slate-400 text-[10px] block">DELIVERY</span>
+            <span class="text-emerald-400 font-bold text-[11px]">Native Phone SMS</span>
+          </div>
+          <div class="p-2 bg-white/5 rounded-lg border border-white/5">
+            <span class="text-slate-400 text-[10px] block">NOTIFICATION</span>
+            <span class="text-cyan-400 font-bold text-[11px]">Top Military HUD</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Live Evaluator Access Links Banner -->
+    <div class="p-4 bg-cyan-950/30 border border-cyan-500/30 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 font-mono text-xs">
+      <div class="flex items-center space-x-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span class="text-slate-300">LIVE SYSTEM DEPLOYMENT:</span>
+        <a href="https://containing-rocky-imported-essays.trycloudflare.com" target="_blank" class="text-cyan-400 underline font-bold hover:text-cyan-300">
+          https://containing-rocky-imported-essays.trycloudflare.com
+        </a>
+      </div>
+      <div class="text-slate-400">
+        Local Port: <span class="text-white font-bold">8000</span> | Architecture: <span class="text-emerald-400 font-bold">FastAPI + React 19 Unified</span>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

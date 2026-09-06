@@ -113,9 +113,9 @@ def send_sms_alert(req: SmsAlertRequest):
     """
     print(f"[SMS ALERT REQUEST] Recipient: {req.phone_number}, Agency: {req.agency}, API Key Provided: {bool(req.api_key)}")
     result = sms_service.send_sms(req.phone_number, req.hotspot, req.agency, custom_api_key=req.api_key)
-    print(f"[SMS ALERT RESULT] Gateway: {result.get('provider')}, Status: {result.get('status')}")
+    print(f"[SMS ALERT RESULT] Gateway: {result.get('provider')}, Status: {result.get('status')}, Success: {result.get('success')}")
     return {
-        "success": True,
+        "success": result.get("success", False),
         "receipt": result
     }
 

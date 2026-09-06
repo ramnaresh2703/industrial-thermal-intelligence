@@ -48,7 +48,11 @@ class SmsAlertService:
         clean_phone = "".join(filter(lambda c: c.isdigit() or c == "+", phone_number.strip()))
         formatted_text = self.format_alert_message(hotspot, agency)
         dispatch_id = f"SMS-NTRO-{int(time.time()) % 1000000:06d}"
-        active_fast2sms_key = custom_api_key or self.fast2sms_api_key
+        from pathlib import Path
+        from dotenv import load_dotenv
+        load_dotenv()
+        load_dotenv(Path(__file__).parent / ".env")
+        active_fast2sms_key = custom_api_key or os.getenv("FAST2SMS_API_KEY", "") or self.fast2sms_api_key
 
         # 1. Check for real Fast2SMS API Key (Popular Indian SMS Gateway)
         if active_fast2sms_key:
@@ -68,7 +72,12 @@ class SmsAlertService:
                     "Content-Type": "application/x-www-form-urlencoded"
                 }
                 resp = requests.post(url, data=payload, headers=headers, timeout=8)
-                resp_json = resp.json() if resp.status_code == 200 else {}
+                resp_json = {}
+                try:
+                    resp_json = resp.json()
+                except Exception:
+                    pass
+
                 if resp.status_code == 200 and resp_json.get("return", True):
                     return {
                         "success": True,
@@ -82,9 +91,25 @@ class SmsAlertService:
                         "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
                     }
                 else:
-                    print(f"[SMS Service] Fast2SMS returned: {resp.text}")
+                    err_msg = resp_json.get("message") or resp.text
+                    status_code = resp_json.get("status_code", resp.status_code)
+                    print(f"[SMS Service] Fast2SMS returned error ({status_code}): {err_msg}")
+                    is_recharge_needed = (status_code == 999)
+                    return {
+                        "success": False,
+                        "error": err_msg,
+                        "gateway_code": status_code,
+                        "status": "REQUIRES_FAST2SMS_RECHARGE" if is_recharge_needed else "GATEWAY_REJECTED",
+                        "recharge_required": is_recharge_needed,
+                        "provider": "Fast2SMS India Gateway",
+                        "dispatch_id": dispatch_id,
+                        "recipient": clean_phone,
+                        "agency": agency,
+                        "message": formatted_text,
+                        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+                    }
             except Exception as e:
-                print(f"[SMS Service] Fast2SMS error: {e}")
+                print(f"[SMS Service] Fast2SMS exception: {e}")
 
         # 2. Check for Twilio Credentials
         if self.twilio_sid and self.twilio_token and self.twilio_phone:

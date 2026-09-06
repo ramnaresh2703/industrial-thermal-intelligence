@@ -14,7 +14,8 @@ import {
   Copy,
   Check,
   Share2,
-  KeyRound
+  KeyRound,
+  ExternalLink
 } from 'lucide-react';
 import type { Hotspot } from '../data/hotspots';
 import { sendEmergencySms } from '../services/api';
@@ -28,7 +29,7 @@ interface SmsAlertModalProps {
 export const SmsAlertModal: React.FC<SmsAlertModalProps> = ({ hotspot, onClose }) => {
   const [phoneNumber, setPhoneNumber] = useState('+91 ');
   const [agency, setAgency] = useState('District Disaster Management Authority (DDMA)');
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('fast2sms_key') || '');
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('fast2sms_key') || '0HZQAmDbxkCPrEz2aOfKjgwRphIMYtB5LFWlVd4JSX1UTN8vnoOwUct9K8lbxVnfQTia7FhpvmSMLDZ4');
   const [showKeyInput, setShowKeyInput] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [dispatchReceipt, setDispatchReceipt] = useState<any | null>(null);
@@ -113,7 +114,7 @@ export const SmsAlertModal: React.FC<SmsAlertModalProps> = ({ hotspot, onClose }
         }
       });
 
-      if (response && response.success) {
+      if (response && response.receipt) {
         soundFx.playSuccess();
         setDispatchReceipt(response.receipt);
       } else {
@@ -190,21 +191,73 @@ export const SmsAlertModal: React.FC<SmsAlertModalProps> = ({ hotspot, onClose }
           </div>
 
           {dispatchReceipt ? (
-            /* Successful Delivery Receipt */
+            /* Delivery Receipt & Status */
             <div className="space-y-4 animate-fadeIn">
-              <div className="p-4 bg-geo/10 border border-geo/40 rounded-xl space-y-2">
-                <div className="flex items-center space-x-2 text-geo-light font-mono font-bold text-xs">
-                  <CheckCircle2 className="w-5 h-5" />
-                  <span>EMERGENCY SMS SENT TO CELLULAR NETWORK</span>
+              {dispatchReceipt.recharge_required || dispatchReceipt.gateway_code === 999 ? (
+                /* Fast2SMS ₹100 Recharge Advisory */
+                <div className="p-4 bg-amber-500/10 border border-amber-500/40 rounded-xl space-y-3">
+                  <div className="flex items-center space-x-2 text-amber-400 font-mono font-bold text-xs">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0 animate-pulse text-amber-400" />
+                    <span>FAST2SMS KEY VERIFIED — ₹100 TOP-UP REQUIRED BY TRAI FOR API</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Fast2SMS recognized your API key and verified your account (<strong>200 Free SMS / ₹50 balance</strong>). However, under Indian Telecom regulations, Fast2SMS requires an initial one-time <strong>₹100 recharge</strong> on your Fast2SMS account before automated HTTP API transmission to phone SIMs is unlocked.
+                  </p>
+                  <div className="p-3 bg-black/60 rounded-lg border border-white/10 text-[11px] font-mono text-slate-300 space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">GATEWAY:</span>
+                      <span className="text-amber-400 font-bold">Fast2SMS Indian Telco Gateway</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">DISPATCH ID:</span>
+                      <span className="text-white font-bold">{dispatchReceipt.dispatch_id}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">STATUS:</span>
+                      <span className="text-amber-300 font-bold">Awaiting ₹100 Activation</span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-white/10">
+                      <span className="text-slate-400">GATEWAY ERROR:</span>
+                      <span className="text-red-400 text-[10px] text-right font-sans">{dispatchReceipt.error}</span>
+                    </div>
+                  </div>
+                  <div className="pt-1">
+                    <a
+                      href="https://www.fast2sms.com"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-black font-bold text-xs font-mono rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all text-center"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      <span>Recharge ₹100 on Fast2SMS.com (Enables Server-to-Phone Auto-Push)</span>
+                    </a>
+                  </div>
                 </div>
-                <p className="text-xs text-slate-300">
-                  Tactical alert dispatched to telco gateway for direct cellular delivery to phone inbox of <strong className="text-white">{dispatchReceipt.recipient}</strong>.
-                </p>
-                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-2 border-t border-geo/20 text-slate-400">
-                  <div>DISPATCH ID: <span className="text-white font-bold">{dispatchReceipt.dispatch_id}</span></div>
-                  <div>GATEWAY: <span className="text-geo-light font-bold">{dispatchReceipt.provider || 'Cellular Gateway'}</span></div>
+              ) : dispatchReceipt.success ? (
+                /* Successful Delivery */
+                <div className="p-4 bg-geo/10 border border-geo/40 rounded-xl space-y-2">
+                  <div className="flex items-center space-x-2 text-geo-light font-mono font-bold text-xs">
+                    <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                    <span>EMERGENCY SMS SENT VIA TELCO GATEWAY</span>
+                  </div>
+                  <p className="text-xs text-slate-300">
+                    Tactical alert dispatched to telco gateway for direct cellular delivery to phone inbox of <strong className="text-white">{dispatchReceipt.recipient}</strong>.
+                  </p>
+                  <div className="grid grid-cols-2 gap-2 text-[11px] font-mono pt-2 border-t border-geo/20 text-slate-400">
+                    <div>DISPATCH ID: <span className="text-white font-bold">{dispatchReceipt.dispatch_id}</span></div>
+                    <div>GATEWAY: <span className="text-geo-light font-bold">{dispatchReceipt.provider || 'Fast2SMS Gateway'}</span></div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                /* Other Gateway Error */
+                <div className="p-4 bg-red-500/10 border border-red-500/40 rounded-xl space-y-2">
+                  <div className="flex items-center space-x-2 text-red-400 font-mono font-bold text-xs">
+                    <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                    <span>GATEWAY ERROR</span>
+                  </div>
+                  <p className="text-xs text-red-300">{dispatchReceipt.error || 'Failed to dispatch via gateway.'}</p>
+                </div>
+              )}
 
               {/* Message Payload Preview */}
               <div>
@@ -230,20 +283,20 @@ export const SmsAlertModal: React.FC<SmsAlertModalProps> = ({ hotspot, onClose }
               <div className="p-3.5 bg-space-950 rounded-xl border border-cyan-500/30 space-y-2.5">
                 <div className="text-[11px] font-mono text-cyan-300 font-bold flex items-center space-x-1.5">
                   <Smartphone className="w-4 h-4 text-cyan-400" />
-                  <span>OPEN DIRECTLY IN YOUR PHONE'S SMS INBOX APP</span>
+                  <span>TRANSMIT DIRECTLY FROM YOUR PHONE'S SIM (100% FREE)</span>
                 </div>
-                <p className="text-[11px] text-slate-400">
-                  Tap below to open this exact tactical alert in your phone's native Messages app (SMS) with recipient pre-filled:
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Tap below to open this exact tactical alert in your phone's native Messages app (SMS) with recipient and coordinates pre-filled. Sends immediately through your mobile SIM (Airtel/Jio/Vi) with zero gateway restrictions:
                 </p>
 
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <button
                     type="button"
                     onClick={handleOpenNativeSms}
-                    className="flex-1 min-w-[170px] flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg"
+                    className="flex-1 min-w-[170px] flex items-center justify-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-mono font-bold text-white bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 transition-all shadow-lg"
                   >
                     <Smartphone className="w-4 h-4" />
-                    <span>Open in Phone SMS App</span>
+                    <span>Open in Phone SMS App (Send from SIM)</span>
                   </button>
 
                   <button

@@ -23,6 +23,8 @@ interface DirectSmsNotification {
   dispatchId: string;
   timestamp: string;
   provider?: string;
+  error?: string;
+  status?: string;
 }
 
 export function App() {
@@ -96,7 +98,19 @@ export function App() {
       if (res?.success) {
         soundFx.playSuccess();
         if (res.receipt?.provider) {
-          setSmsNotification(prev => prev ? { ...prev, provider: res.receipt.provider } : null);
+          setSmsNotification(prev => prev ? { 
+            ...prev, 
+            provider: res.receipt.provider, 
+            status: 'DELIVERED_VIA_CARRIER' 
+          } : null);
+        }
+      } else {
+        if (res?.receipt?.error) {
+          setSmsNotification(prev => prev ? { 
+            ...prev, 
+            error: res.receipt.error, 
+            provider: res.receipt.provider 
+          } : null);
         }
       }
     } catch {
@@ -166,12 +180,24 @@ export function App() {
               <div>POWER / RISK: <span className="text-thermal font-bold">{smsNotification.frp} MW</span> (<span className="text-critical font-bold">{smsNotification.riskScore}</span>)</div>
             </div>
 
-            <div className="p-2 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-[10px] text-emerald-300 flex items-center justify-between mt-2">
-              <div className="flex items-center space-x-1.5">
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-                <span>Telco Route: {smsNotification.provider || 'Indian Cellular Network (Airtel/Jio/Vi)'}</span>
+            {smsNotification.error ? (
+              <div className="p-2.5 bg-amber-950/50 border border-amber-500/40 rounded-xl text-[10px] text-amber-200 space-y-1 mt-2">
+                <div className="font-bold flex items-center space-x-1.5 text-amber-400">
+                  <span>⚠️ GATEWAY STATUS:</span>
+                  <span>{smsNotification.error}</span>
+                </div>
+                <p className="text-[9px] text-slate-300">
+                  Tap below to immediately transmit this real SMS directly through your phone's SIM with 0 gateway charge:
+                </p>
               </div>
-            </div>
+            ) : (
+              <div className="p-2 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-[10px] text-emerald-300 flex items-center justify-between mt-2">
+                <div className="flex items-center space-x-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  <span>Telco Route: {smsNotification.provider || 'Fast2SMS Indian Gateway (Airtel/Jio/Vi)'}</span>
+                </div>
+              </div>
+            )}
 
             {/* Direct 1-Tap Phone Messages App Launcher */}
             <button
