@@ -22,6 +22,7 @@ interface DirectSmsNotification {
   riskLevel: string;
   dispatchId: string;
   timestamp: string;
+  provider?: string;
 }
 
 export function App() {
@@ -94,6 +95,9 @@ export function App() {
       });
       if (res?.success) {
         soundFx.playSuccess();
+        if (res.receipt?.provider) {
+          setSmsNotification(prev => prev ? { ...prev, provider: res.receipt.provider } : null);
+        }
       }
     } catch {
       // Offline fallback still completes audio and receipt
@@ -161,10 +165,31 @@ export function App() {
               <div>DISPATCH ID: <span className="text-white font-bold">{smsNotification.dispatchId}</span></div>
               <div>POWER / RISK: <span className="text-thermal font-bold">{smsNotification.frp} MW</span> (<span className="text-critical font-bold">{smsNotification.riskScore}</span>)</div>
             </div>
-            <div className="p-2 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-[10px] text-emerald-300 flex items-center space-x-1.5 mt-2">
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
-              <span>Transmitted directly to recipient mobile phone inbox (Airtel/Jio/Vi network)</span>
+
+            <div className="p-2 bg-emerald-950/40 border border-emerald-500/40 rounded-lg text-[10px] text-emerald-300 flex items-center justify-between mt-2">
+              <div className="flex items-center space-x-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                <span>Telco Route: {smsNotification.provider || 'Indian Cellular Network (Airtel/Jio/Vi)'}</span>
+              </div>
             </div>
+
+            {/* Direct 1-Tap Phone Messages App Launcher */}
+            <button
+              type="button"
+              onClick={() => {
+                soundFx.playClick();
+                const cleanNumber = smsNotification.phone.replace(/[^0-9+]/g, '');
+                const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent);
+                const separator = isIOS ? '&' : '?';
+                const alertText = `🚨 [NTRO FLASH ALERT - ${smsNotification.riskLevel} PRIORITY]\nTARGET: ${smsNotification.target}\nRISK: ${smsNotification.riskScore}/100 | FRP: ${smsNotification.frp} MW\nACTION: Immediate containment order.\nROUTE TO: DDMA & State Fire Command | SIH26162`;
+                window.location.href = `sms:${cleanNumber}${separator}body=${encodeURIComponent(alertText)}`;
+              }}
+              className="w-full mt-2 py-2 px-3 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white rounded-xl font-mono font-bold text-xs flex items-center justify-center space-x-2 shadow-lg transition-all"
+              title="Open alert in your device native SMS application"
+            >
+              <Smartphone className="w-4 h-4" />
+              <span>Open in Phone Messages App (Direct SIM SMS)</span>
+            </button>
           </div>
         </div>
       )}

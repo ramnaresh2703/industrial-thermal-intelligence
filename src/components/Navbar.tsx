@@ -11,7 +11,8 @@ import {
   Activity, 
   Clock,
   Crosshair,
-  Smartphone
+  Smartphone,
+  KeyRound
 } from 'lucide-react';
 import { soundFx } from '../utils/audio';
 
@@ -124,6 +125,23 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             )}
           </div>
+
+          {/* Telco Gateway Key Config Button */}
+          <button
+            onClick={() => {
+              const current = localStorage.getItem('fast2sms_key') || '';
+              const key = window.prompt('Enter your Fast2SMS API Key for direct cellular SMS delivery to Indian SIMs (Airtel/Jio/Vi):\n(Get free ₹50 credits at fast2sms.com - Dev API section)', current);
+              if (key !== null) {
+                localStorage.setItem('fast2sms_key', key.trim());
+                alert(key.trim() ? '✓ Fast2SMS Telco Key Saved! Real SMS will now be transmitted to ' + commanderPhone : 'API key cleared.');
+              }
+            }}
+            className="flex items-center space-x-1 px-2 py-0.5 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono transition-colors"
+            title="Configure Fast2SMS API key for real cellular SMS transmission"
+          >
+            <KeyRound className="w-2.5 h-2.5 text-amber-400" />
+            <span className="hidden sm:inline">SMS GATEWAY KEY</span>
+          </button>
 
           <div 
             onClick={() => setTimeMode(m => m === 'IST' ? 'UTC' : 'IST')}
