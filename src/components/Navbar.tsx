@@ -222,7 +222,18 @@ export const Navbar: React.FC<NavbarProps> = ({
           </nav>
 
           {/* Action Header Button */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
+            <a
+              href="/mindmap.html"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-mono font-bold text-cyan-300 hover:text-white bg-cyan-950/40 hover:bg-cyan-900/60 border border-cyan-500/40 transition-all shadow-sm"
+              title="Open Evaluator Presentation Mindmap"
+            >
+              <span>🧠 Mindmap</span>
+              <span>↗</span>
+            </a>
+
             <button
               onClick={() => {
                 setActiveTab(activeTab === 'dashboard' ? 'analytics' : 'dashboard');
