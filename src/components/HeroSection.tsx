@@ -9,12 +9,13 @@ import {
   MapPin, 
   Activity, 
   Layers, 
-  Sparkles,
   CheckCircle2,
-  TrendingUp,
   Cpu,
   Radar,
-  FileText
+  FileText,
+  Zap,
+  Globe2,
+  TrendingUp
 } from 'lucide-react';
 import { SATELLITE_TELEMETRY_STATS, DEMO_HOTSPOTS } from '../data/hotspots';
 import { soundFx } from '../utils/audio';
@@ -34,7 +35,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Futuristic Satellite Orbital Animation on HTML Canvas
+  // Enhanced Satellite Orbital Animation
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -46,81 +47,150 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
     let angle2 = Math.PI * 0.6;
     let angle3 = Math.PI * 1.3;
     let pulseRadius = 0;
+    let scanLine = 0;
+    let dataFlowT = 0;
 
     const resize = () => {
       canvas.width = canvas.parentElement ? canvas.parentElement.clientWidth : 800;
-      canvas.height = 500;
+      canvas.height = 480;
     };
     resize();
     window.addEventListener('resize', resize);
+
+    const drawDataStream = (x1: number, y1: number, x2: number, y2: number, t: number, color: string) => {
+      const segments = 8;
+      for (let i = 0; i < segments; i++) {
+        const p = ((t + i / segments) % 1);
+        const px = x1 + (x2 - x1) * p;
+        const py = y1 + (y2 - y1) * p;
+        const alpha = Math.sin(p * Math.PI) * 0.7;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fillStyle = color.replace(')', `, ${alpha})`).replace('rgb', 'rgba');
+        ctx.fill();
+      }
+    };
 
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const globeRadius = Math.min(centerX, centerY) * 0.48;
+      const globeRadius = Math.min(centerX, centerY) * 0.46;
 
-      // Glow behind Earth
-      const glowGrad = ctx.createRadialGradient(centerX, centerY, globeRadius * 0.5, centerX, centerY, globeRadius * 1.6);
-      glowGrad.addColorStop(0, 'rgba(37, 99, 235, 0.25)');
-      glowGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.1)');
+      // Deep space glow
+      const glowGrad = ctx.createRadialGradient(centerX, centerY, globeRadius * 0.3, centerX, centerY, globeRadius * 2.0);
+      glowGrad.addColorStop(0, 'rgba(37, 99, 235, 0.20)');
+      glowGrad.addColorStop(0.4, 'rgba(249, 115, 22, 0.08)');
+      glowGrad.addColorStop(0.8, 'rgba(6, 182, 212, 0.04)');
       glowGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = glowGrad;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, globeRadius * 1.6, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, globeRadius * 2.0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Earth Globe Circle
+      // Star field
+      ctx.save();
+      for (let i = 0; i < 60; i++) {
+        const sx = (Math.sin(i * 137.5 * Math.PI / 180) * 0.5 + 0.5) * canvas.width;
+        const sy = (Math.cos(i * 97.3 * Math.PI / 180) * 0.5 + 0.5) * canvas.height;
+        const alpha = 0.3 + 0.4 * Math.sin(dataFlowT * 0.3 + i);
+        ctx.beginPath();
+        ctx.arc(sx, sy, 0.8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.4})`;
+        ctx.fill();
+      }
+      ctx.restore();
+
+      // Earth Globe
       ctx.save();
       ctx.beginPath();
       ctx.arc(centerX, centerY, globeRadius, 0, Math.PI * 2);
-      ctx.fillStyle = '#060d28';
+
+      // Earth gradient fill
+      const earthGrad = ctx.createRadialGradient(
+        centerX - globeRadius * 0.3, centerY - globeRadius * 0.3, 0,
+        centerX, centerY, globeRadius
+      );
+      earthGrad.addColorStop(0, '#0d1a4a');
+      earthGrad.addColorStop(0.5, '#060d28');
+      earthGrad.addColorStop(1, '#03050c');
+      ctx.fillStyle = earthGrad;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(37, 99, 235, 0.5)';
+
+      // Globe border with glow
+      ctx.strokeStyle = 'rgba(37, 99, 235, 0.6)';
       ctx.lineWidth = 1.5;
+      ctx.shadowColor = 'rgba(37, 99, 235, 0.8)';
+      ctx.shadowBlur = 12;
       ctx.stroke();
+      ctx.shadowBlur = 0;
       ctx.clip();
 
-      // Latitude lines
-      ctx.strokeStyle = 'rgba(37, 99, 235, 0.15)';
-      ctx.lineWidth = 1;
-      for (let i = -3; i <= 3; i++) {
-        const y = centerY + (i * globeRadius) / 4;
+      // Latitude grid lines
+      ctx.strokeStyle = 'rgba(37, 99, 235, 0.12)';
+      ctx.lineWidth = 0.8;
+      ctx.setLineDash([]);
+      for (let i = -4; i <= 4; i++) {
+        const y = centerY + (i * globeRadius) / 4.5;
         const r = Math.sqrt(Math.max(0, globeRadius * globeRadius - Math.pow(y - centerY, 2)));
+        if (r > 5) {
+          ctx.beginPath();
+          ctx.ellipse(centerX, y, r, r * 0.27, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+      }
+
+      // Longitude grid
+      for (let i = 0; i < 5; i++) {
         ctx.beginPath();
-        ctx.ellipse(centerX, y, r, r * 0.28, 0, 0, Math.PI * 2);
+        ctx.ellipse(centerX, centerY, globeRadius * (0.2 * (i + 1)), globeRadius, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      // Longitude lines
-      for (let i = 0; i < 4; i++) {
-        ctx.beginPath();
-        ctx.ellipse(centerX, centerY, globeRadius * (0.25 * (i + 1)), globeRadius, 0, 0, Math.PI * 2);
-        ctx.stroke();
+      // Scanline effect across globe
+      scanLine = (scanLine + 0.8) % (globeRadius * 2);
+      const scanY = centerY - globeRadius + scanLine;
+      if (scanY > centerY - globeRadius && scanY < centerY + globeRadius) {
+        const scanGrad = ctx.createLinearGradient(0, scanY - 4, 0, scanY + 4);
+        scanGrad.addColorStop(0, 'transparent');
+        scanGrad.addColorStop(0.5, 'rgba(6, 182, 212, 0.12)');
+        scanGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = scanGrad;
+        ctx.fillRect(centerX - globeRadius, scanY - 4, globeRadius * 2, 8);
       }
 
-      // Simulated Indian Subcontinent Silhouette & Hotspots on globe
-      const indiaX = centerX + globeRadius * 0.15;
+      // India thermal hotspot cluster
+      const indiaX = centerX + globeRadius * 0.14;
       const indiaY = centerY + globeRadius * 0.08;
 
-      // Pulsing Tamil Nadu Thermal Hotspot Cluster
-      pulseRadius = (pulseRadius + 0.5) % 35;
-      ctx.beginPath();
-      ctx.arc(indiaX, indiaY, pulseRadius, 0, Math.PI * 2);
-      ctx.strokeStyle = `rgba(220, 38, 38, ${Math.max(0, 1 - pulseRadius / 35)})`;
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      // Expanding pulse rings
+      pulseRadius = (pulseRadius + 0.6) % 40;
+      for (let r = 0; r < 3; r++) {
+        const rr = (pulseRadius + r * 13) % 40;
+        const alpha = Math.max(0, 1 - rr / 40) * 0.8;
+        ctx.beginPath();
+        ctx.arc(indiaX, indiaY, rr, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(220, 38, 38, ${alpha})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
 
+      // Hot core dot
+      const hotGrad = ctx.createRadialGradient(indiaX, indiaY, 0, indiaX, indiaY, 7);
+      hotGrad.addColorStop(0, '#fff');
+      hotGrad.addColorStop(0.3, '#fbbf24');
+      hotGrad.addColorStop(1, '#f97316');
       ctx.beginPath();
-      ctx.arc(indiaX, indiaY, 4, 0, Math.PI * 2);
-      ctx.fillStyle = '#f97316';
-      ctx.fill();
+      ctx.arc(indiaX, indiaY, 5, 0, Math.PI * 2);
+      ctx.fillStyle = hotGrad;
       ctx.shadowColor = '#f97316';
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 20;
       ctx.fill();
+      ctx.shadowBlur = 0;
+
       ctx.restore();
 
-      // Helper to draw satellite orbit
+      // Draw orbital paths
       const drawOrbit = (aX: number, aY: number, rot: number, color: string) => {
         ctx.save();
         ctx.translate(centerX, centerY);
@@ -128,114 +198,123 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
         ctx.beginPath();
         ctx.ellipse(0, 0, aX, aY, 0, 0, Math.PI * 2);
         ctx.strokeStyle = color;
-        ctx.setLineDash([4, 6]);
-        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 8]);
+        ctx.lineWidth = 0.8;
         ctx.stroke();
         ctx.restore();
       };
 
-      // Orbit 1: Polar VIIRS Orbit
-      drawOrbit(globeRadius * 1.5, globeRadius * 0.75, Math.PI / 4, 'rgba(59, 130, 246, 0.3)');
-      // Orbit 2: Equatorial MODIS Orbit
-      drawOrbit(globeRadius * 1.35, globeRadius * 0.65, -Math.PI / 5, 'rgba(249, 115, 22, 0.3)');
-      // Orbit 3: Geostationary INSAT-3DR Orbit
-      drawOrbit(globeRadius * 1.7, globeRadius * 0.85, 0.05, 'rgba(34, 197, 94, 0.3)');
+      drawOrbit(globeRadius * 1.52, globeRadius * 0.76, Math.PI / 4,   'rgba(59, 130, 246, 0.28)');
+      drawOrbit(globeRadius * 1.36, globeRadius * 0.66, -Math.PI / 5,  'rgba(249, 115, 22, 0.28)');
+      drawOrbit(globeRadius * 1.72, globeRadius * 0.86, 0.05,           'rgba(34, 197, 94, 0.28)');
 
-      // Draw Satellite 1: VIIRS NOAA-20
-      const sat1OrbitX = globeRadius * 1.5;
-      const sat1OrbitY = globeRadius * 0.75;
+      // Satellite 1 — VIIRS NOAA-20 (blue)
       const rot1 = Math.PI / 4;
-      const localX1 = Math.cos(angle1) * sat1OrbitX;
-      const localY1 = Math.sin(angle1) * sat1OrbitY;
-      const s1X = centerX + localX1 * Math.cos(rot1) - localY1 * Math.sin(rot1);
-      const s1Y = centerY + localX1 * Math.sin(rot1) + localY1 * Math.cos(rot1);
+      const lx1 = Math.cos(angle1) * globeRadius * 1.52;
+      const ly1 = Math.sin(angle1) * globeRadius * 0.76;
+      const s1X = centerX + lx1 * Math.cos(rot1) - ly1 * Math.sin(rot1);
+      const s1Y = centerY + lx1 * Math.sin(rot1) + ly1 * Math.cos(rot1);
 
-      // Radar Scan Cone from Satellite 1 down to Earth
+      // Data stream to hotspot
+      drawDataStream(s1X, s1Y, indiaX, indiaY, dataFlowT, 'rgb(249, 115, 22)');
+
+      // Sensor cone
       ctx.save();
-      const gradCone = ctx.createLinearGradient(s1X, s1Y, indiaX, indiaY);
-      gradCone.addColorStop(0, 'rgba(249, 115, 22, 0.7)');
-      gradCone.addColorStop(1, 'rgba(249, 115, 22, 0)');
+      const coneGrad = ctx.createLinearGradient(s1X, s1Y, indiaX, indiaY);
+      coneGrad.addColorStop(0, 'rgba(249, 115, 22, 0.6)');
+      coneGrad.addColorStop(1, 'rgba(249, 115, 22, 0.0)');
       ctx.beginPath();
       ctx.moveTo(s1X, s1Y);
-      ctx.lineTo(indiaX - 25, indiaY + 15);
-      ctx.lineTo(indiaX + 25, indiaY - 15);
+      ctx.lineTo(indiaX - 20, indiaY + 12);
+      ctx.lineTo(indiaX + 20, indiaY - 12);
       ctx.closePath();
-      ctx.fillStyle = gradCone;
+      ctx.fillStyle = coneGrad;
       ctx.fill();
 
-      // Satellite Body 1
+      // Satellite body
       ctx.beginPath();
-      ctx.arc(s1X, s1Y, 5, 0, Math.PI * 2);
-      ctx.fillStyle = '#38bdf8';
+      ctx.arc(s1X, s1Y, 5.5, 0, Math.PI * 2);
+      const s1Grad = ctx.createRadialGradient(s1X - 1, s1Y - 1, 0, s1X, s1Y, 5.5);
+      s1Grad.addColorStop(0, '#93c5fd');
+      s1Grad.addColorStop(1, '#38bdf8');
+      ctx.fillStyle = s1Grad;
       ctx.shadowColor = '#38bdf8';
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 14;
       ctx.fill();
+      ctx.shadowBlur = 0;
 
-      // Satellite Solar Panels
-      ctx.strokeStyle = '#93c5fd';
-      ctx.lineWidth = 2;
+      // Solar panels
+      ctx.strokeStyle = '#bae6fd';
+      ctx.lineWidth = 2.5;
+      ctx.lineCap = 'round';
       ctx.beginPath();
-      ctx.moveTo(s1X - 10, s1Y);
-      ctx.lineTo(s1X + 10, s1Y);
+      ctx.moveTo(s1X - 12, s1Y); ctx.lineTo(s1X + 12, s1Y);
       ctx.stroke();
 
-      // Satellite Label
-      ctx.fillStyle = '#bae6fd';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillText('VIIRS NOAA-20 (375m)', s1X + 10, s1Y - 8);
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.85)';
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillText('VIIRS NOAA-20 (375m)', s1X + 14, s1Y - 6);
       ctx.restore();
 
-      // Draw Satellite 2: MODIS AQUA
-      const sat2OrbitX = globeRadius * 1.35;
-      const sat2OrbitY = globeRadius * 0.65;
+      // Satellite 2 — MODIS AQUA (orange)
       const rot2 = -Math.PI / 5;
-      const localX2 = Math.cos(angle2) * sat2OrbitX;
-      const localY2 = Math.sin(angle2) * sat2OrbitY;
-      const s2X = centerX + localX2 * Math.cos(rot2) - localY2 * Math.sin(rot2);
-      const s2Y = centerY + localX2 * Math.sin(rot2) + localY2 * Math.cos(rot2);
+      const lx2 = Math.cos(angle2) * globeRadius * 1.36;
+      const ly2 = Math.sin(angle2) * globeRadius * 0.66;
+      const s2X = centerX + lx2 * Math.cos(rot2) - ly2 * Math.sin(rot2);
+      const s2Y = centerY + lx2 * Math.sin(rot2) + ly2 * Math.cos(rot2);
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(s2X, s2Y, 4, 0, Math.PI * 2);
+      ctx.arc(s2X, s2Y, 4.5, 0, Math.PI * 2);
       ctx.fillStyle = '#fb923c';
       ctx.shadowColor = '#fb923c';
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 12;
       ctx.fill();
-      ctx.fillStyle = '#fdba74';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillText('MODIS AQUA (1km)', s2X + 8, s2Y + 12);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#fdba74';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s2X - 10, s2Y); ctx.lineTo(s2X + 10, s2Y);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(253, 186, 116, 0.85)';
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillText('MODIS AQUA (1km)', s2X + 12, s2Y + 12);
       ctx.restore();
 
-      // Draw Satellite 3: INSAT-3DR
-      const sat3OrbitX = globeRadius * 1.7;
-      const sat3OrbitY = globeRadius * 0.85;
+      // Satellite 3 — INSAT-3DR (green)
       const rot3 = 0.05;
-      const localX3 = Math.cos(angle3) * sat3OrbitX;
-      const localY3 = Math.sin(angle3) * sat3OrbitY;
-      const s3X = centerX + localX3 * Math.cos(rot3) - localY3 * Math.sin(rot3);
-      const s3Y = centerY + localX3 * Math.sin(rot3) + localY3 * Math.cos(rot3);
+      const lx3 = Math.cos(angle3) * globeRadius * 1.72;
+      const ly3 = Math.sin(angle3) * globeRadius * 0.86;
+      const s3X = centerX + lx3 * Math.cos(rot3) - ly3 * Math.sin(rot3);
+      const s3Y = centerY + lx3 * Math.sin(rot3) + ly3 * Math.cos(rot3);
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(s3X, s3Y, 4.5, 0, Math.PI * 2);
+      ctx.arc(s3X, s3Y, 5, 0, Math.PI * 2);
       ctx.fillStyle = '#4ade80';
       ctx.shadowColor = '#4ade80';
-      ctx.shadowBlur = 9;
+      ctx.shadowBlur = 12;
       ctx.fill();
-      ctx.fillStyle = '#86efac';
-      ctx.font = '10px "JetBrains Mono", monospace';
-      ctx.fillText('INSAT-3DR (GEO-MET)', s3X + 8, s3Y - 8);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = '#86efac';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s3X - 11, s3Y); ctx.lineTo(s3X + 11, s3Y);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(134, 239, 172, 0.85)';
+      ctx.font = '9px "JetBrains Mono", monospace';
+      ctx.fillText('INSAT-3DR (GEO-MET)', s3X + 12, s3Y - 6);
       ctx.restore();
 
       angle1 += 0.007;
       angle2 += 0.005;
       angle3 += 0.003;
+      dataFlowT += 0.008;
 
       animationFrameId = requestAnimationFrame(render);
     };
 
     render();
-
     return () => {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', resize);
@@ -243,227 +322,306 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
   }, []);
 
   return (
-    <div className="relative overflow-hidden bg-grid-pattern pt-8 pb-20">
-      {/* Radial Glow Lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[500px] bg-gradient-to-b from-blue-900/20 via-thermal/10 to-transparent blur-3xl pointer-events-none -z-10" />
+    <div className="relative overflow-hidden bg-grid-pattern pt-10 pb-24">
+
+      {/* Ambient lighting blobs */}
+      <div className="absolute top-0 left-1/4 w-[600px] h-[400px] bg-blue-900/12 blur-[120px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute top-1/3 right-0 w-[400px] h-[400px] bg-thermal/6 blur-[100px] rounded-full pointer-events-none -z-10" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-cyan-900/8 blur-[80px] rounded-full pointer-events-none -z-10" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        
-        {/* Top Badges & Organization Tags */}
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-6">
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-space-800/90 border border-thermal/30 text-thermal-light text-xs font-mono font-medium shadow-thermal-glow">
+
+        {/* ── TOP BADGES ── */}
+        <div className="flex flex-wrap items-center justify-center gap-3 mb-8 animate-fade-in">
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full glass-card border border-thermal/25 text-thermal-light text-[11px] font-mono font-semibold shadow-thermal-glow">
             <span className="w-2 h-2 rounded-full bg-thermal animate-ping" />
             <span>SMART INDIA HACKATHON 2026 // GRAND FINALE</span>
           </div>
-          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-space-800/90 border border-ai/40 text-ai-light text-xs font-mono font-medium shadow-ai-glow">
-            <span className="w-2 h-2 rounded-full bg-ai" />
+          <div className="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full glass-card border border-ai/30 text-ai-light text-[11px] font-mono font-semibold shadow-ai-glow">
+            <Zap className="w-3.5 h-3.5" />
             <span>PROBLEM STATEMENT: SIH26162</span>
           </div>
-          <div className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-full bg-space-800/90 border border-white/10 text-slate-300 text-xs font-mono">
-            <span>MINISTRY:</span>
-            <span className="text-white font-bold tracking-wider">NTRO (National Technical Research Org)</span>
+          <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full glass-card border border-white/08 text-slate-300 text-[11px] font-mono">
+            <Globe2 className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-slate-500">MINISTRY:</span>
+            <span className="text-white font-bold">NTRO (National Technical Research Org)</span>
           </div>
         </div>
 
-        {/* Hero Main Header */}
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-tight">
-            Industrial Thermal <br />
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-thermal via-orange-400 to-amber-300 drop-shadow-[0_0_35px_rgba(249,115,22,0.4)]">
-              Intelligence
+        {/* ── HERO HEADER ── */}
+        <div className="text-center max-w-5xl mx-auto animate-slide-up">
+          <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-thermal/08 border border-thermal/20 text-thermal text-[10px] font-mono mb-5">
+            <span className="w-1.5 h-1.5 rounded-full bg-thermal animate-pulse" />
+            <span>REAL-TIME SATELLITE THERMAL ANOMALY DETECTION SYSTEM</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-thermal animate-pulse" />
+          </div>
+
+          <h1 className="text-5xl sm:text-6xl lg:text-8xl font-black tracking-tight text-white leading-[0.95] mb-6">
+            Industrial{' '}
+            <br className="sm:hidden" />
+            <span
+              className="inline-block"
+              style={{
+                background: 'linear-gradient(135deg, #f97316 0%, #fb923c 40%, #fbbf24 80%, #f97316 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                filter: 'drop-shadow(0 0 40px rgba(249,115,22,0.35))',
+              }}
+            >
+              Thermal
             </span>
+            <br />
+            <span className="text-white">Intelligence</span>
           </h1>
 
-          <p className="mt-5 text-lg sm:text-xl text-slate-300 max-w-3xl mx-auto font-normal leading-relaxed">
-            AI-Powered Geospatial Classification and Risk Prioritization of Satellite Thermal Hotspots. 
-            Distinguish routine industrial emissions from catastrophic fires and wildfire hazards in under 90 seconds.
+          <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto font-normal leading-relaxed">
+            AI-Powered Geospatial Classification and Risk Prioritization of Satellite Thermal Hotspots.{' '}
+            <span className="text-slate-200">
+              Distinguish routine industrial emissions from catastrophic fires in under 90 seconds.
+            </span>
           </p>
 
-          {/* Action CTAs */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          {/* ── CTA BUTTONS ── */}
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <button
               onClick={() => { soundFx.playAlert(); onLaunchDashboard(); }}
-              className="group relative inline-flex items-center space-x-3 px-8 py-4 rounded-xl text-sm sm:text-base font-bold uppercase tracking-wider text-white bg-gradient-to-r from-thermal via-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-thermal-glow transition-all transform hover:-translate-y-0.5 active:translate-y-0"
+              className="group relative inline-flex items-center space-x-3 px-8 py-4 rounded-2xl text-sm font-black uppercase tracking-wider text-white overflow-hidden transition-all hover:scale-[1.03] active:scale-[0.98] shadow-thermal-glow"
+              style={{ background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)' }}
             >
-              <Crosshair className="w-5 h-5 text-white animate-spin" style={{ animationDuration: '6s' }} />
-              <span>Launch Command Dashboard</span>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <span className="absolute inset-0 bg-gradient-to-r from-white/15 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Crosshair className="w-5 h-5 animate-spin relative z-10" style={{ animationDuration: '6s' }} />
+              <span className="relative z-10">Launch Command Dashboard</span>
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform relative z-10" />
             </button>
 
             <button
               onClick={() => { soundFx.playClick(); onExploreShap(); }}
-              className="inline-flex items-center space-x-2 px-6 py-4 rounded-xl text-sm sm:text-base font-semibold text-slate-200 bg-space-800/80 hover:bg-space-700/80 border border-white/15 hover:border-ai/50 shadow-lg transition-all"
+              className="group inline-flex items-center space-x-2.5 px-7 py-4 rounded-2xl text-sm font-semibold text-slate-200 glass-card border border-white/12 hover:border-ai/45 hover:text-white transition-all hover:shadow-ai-glow"
             >
-              <BrainCircuit className="w-5 h-5 text-ai-light" />
+              <BrainCircuit className="w-5 h-5 text-ai-light group-hover:text-ai-light" />
               <span>Explore SHAP Explainability</span>
             </button>
 
             <button
               onClick={() => { soundFx.playClick(); onViewDossier(); }}
-              className="inline-flex items-center space-x-2 px-6 py-4 rounded-xl text-sm sm:text-base font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              className="inline-flex items-center space-x-2 px-6 py-4 rounded-2xl text-sm font-semibold text-slate-400 hover:text-white bg-white/03 hover:bg-white/07 border border-white/08 hover:border-white/15 transition-all"
             >
-              <FileText className="w-5 h-5 text-slate-400" />
+              <FileText className="w-4.5 h-4.5 text-slate-500" />
               <span>Project Architecture</span>
             </button>
           </div>
         </div>
 
-        {/* Live Satellite Orbital Canvas */}
-        <div className="mt-10 relative max-w-4xl mx-auto rounded-2xl glass-card border border-white/15 overflow-hidden shadow-2xl">
-          <div className="absolute top-3 left-4 z-10 flex items-center space-x-2 text-xs font-mono text-slate-400">
-            <Radar className="w-4 h-4 text-thermal animate-spin" style={{ animationDuration: '4s' }} />
-            <span className="text-white font-semibold">ORBITAL PASS RECONNAISSANCE</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-geo-light">VIIRS / MODIS / INSAT INGESTION</span>
-          </div>
-
-          <div className="absolute top-3 right-4 z-10 hidden sm:flex items-center space-x-2 text-[11px] font-mono text-cyan-400 bg-black/40 px-2.5 py-1 rounded border border-cyan-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span>SECTOR: 11.1271° N, 78.6569° E [TN]</span>
-          </div>
-
-          <canvas ref={canvasRef} className="w-full h-[400px] sm:h-[460px] block cursor-crosshair" />
-
-          {/* Canvas Bottom Ticker */}
-          <div className="p-3 bg-space-950/90 border-t border-white/10 flex flex-wrap items-center justify-between text-xs font-mono text-slate-400 gap-2">
-            <div className="flex items-center space-x-2">
-              <span className="text-thermal font-bold">LATEST HOTSPOT:</span>
-              <span className="text-white font-medium">Tiruppur SIDCO (342.8 MW - CRITICAL INDUSTRIAL)</span>
+        {/* ── ORBITAL CANVAS ── */}
+        <div className="mt-14 relative max-w-5xl mx-auto rounded-3xl glass-card border border-white/12 overflow-hidden shadow-panel hud-corners">
+          {/* Canvas header bar */}
+          <div className="px-5 py-3 bg-space-950/80 border-b border-white/08 flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Radar className="w-4 h-4 text-thermal animate-spin" style={{ animationDuration: '4s' }} />
+              <span className="text-white font-bold text-xs tracking-wider uppercase">Orbital Pass Reconnaissance</span>
+              <span className="text-white/20">│</span>
+              <span className="text-[11px] font-mono text-geo-light">VIIRS / MODIS / INSAT-3DR INGESTION</span>
             </div>
-            <div className="flex items-center space-x-3 text-[11px]">
+            <div className="hidden sm:flex items-center space-x-2 text-[10px] font-mono text-cyan-300 bg-black/40 px-2.5 py-1 rounded-lg border border-cyan-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+              <span>SECTOR: 11.1271°N, 78.6569°E [TN]</span>
+            </div>
+          </div>
+
+          <canvas ref={canvasRef} className="w-full h-[380px] sm:h-[450px] block cursor-crosshair" />
+
+          {/* Canvas footer ticker */}
+          <div className="px-5 py-3 bg-space-950/90 border-t border-white/08 flex flex-wrap items-center justify-between text-[11px] font-mono text-slate-400 gap-2">
+            <div className="flex items-center space-x-2">
+              <span className="text-thermal font-bold">LATEST:</span>
+              <span className="text-white font-medium">Tiruppur SIDCO — 342.8 MW // CRITICAL INDUSTRIAL</span>
+            </div>
+            <div className="flex items-center space-x-3">
               <span className="text-geo-light flex items-center space-x-1">
                 <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Geospatial Buffer: 500m Matched</span>
+                <span>Geospatial Buffer 500m ✓</span>
               </span>
-              <span className="text-ai-light">XGBoost Inference: 84ms</span>
+              <span className="text-ai-light">XGBoost: 84ms</span>
             </div>
           </div>
         </div>
 
-        {/* Live Telemetry Statistics Cards */}
-        <div className="mt-12 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="glass-card p-5 rounded-xl border border-white/10 relative overflow-hidden">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>ACTIVE SATELLITES</span>
-              <Satellite className="w-4 h-4 text-ai-light" />
-            </div>
-            <div className="mt-2 text-3xl font-black text-white font-mono">
-              {SATELLITE_TELEMETRY_STATS.activeSatellites} <span className="text-xs text-geo-light font-normal">CONSTELLATIONS</span>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">VIIRS (375m), MODIS & INSAT-3DR</p>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-ai to-transparent" />
-          </div>
-
-          <div className="glass-card p-5 rounded-xl border border-critical/30 relative overflow-hidden bg-critical/5">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>CRITICAL ALERTS</span>
-              <Flame className="w-4 h-4 text-critical animate-pulse" />
-            </div>
-            <div className="mt-2 text-3xl font-black text-critical font-mono">
-              0{SATELLITE_TELEMETRY_STATS.criticalAlertsCount} <span className="text-xs text-slate-300 font-normal">EMERGENCY TIERS</span>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">Tiruppur Boiler, Cuddalore Chemical</p>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-critical to-transparent" />
-          </div>
-
-          <div className="glass-card p-5 rounded-xl border border-white/10 relative overflow-hidden">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>ML ACCURACY</span>
-              <Cpu className="w-4 h-4 text-geo-light" />
-            </div>
-            <div className="mt-2 text-3xl font-black text-geo-light font-mono">
-              {SATELLITE_TELEMETRY_STATS.overallAccuracyPct}%
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">XGBoost + TreeSHAP Spatial Ensemble</p>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-geo to-transparent" />
-          </div>
-
-          <div className="glass-card p-5 rounded-xl border border-white/10 relative overflow-hidden">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>TRIAGE LATENCY</span>
-              <Activity className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="mt-2 text-3xl font-black text-amber-300 font-mono">
-              &lt; 90s <span className="text-xs text-slate-300 font-normal">INGEST TO DISPATCH</span>
-            </div>
-            <p className="mt-1 text-[11px] text-slate-400">Automated DDMA & NDRF routing</p>
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 to-transparent" />
-          </div>
+        {/* ── TELEMETRY STATS ── */}
+        <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            {
+              label: 'ACTIVE SATELLITES',
+              value: SATELLITE_TELEMETRY_STATS.activeSatellites,
+              unit: 'CONSTELLATIONS',
+              sub: 'VIIRS (375m), MODIS & INSAT-3DR',
+              icon: Satellite,
+              color: 'ai',
+              borderColor: 'rgba(37,99,235,0.25)',
+              accentColor: '#3b82f6',
+            },
+            {
+              label: 'CRITICAL ALERTS',
+              value: `0${SATELLITE_TELEMETRY_STATS.criticalAlertsCount}`,
+              unit: 'EMERGENCY TIERS',
+              sub: 'Tiruppur Boiler, Cuddalore Chem',
+              icon: Flame,
+              color: 'critical',
+              borderColor: 'rgba(220,38,38,0.30)',
+              accentColor: '#dc2626',
+              bg: 'rgba(220,38,38,0.04)',
+            },
+            {
+              label: 'ML ACCURACY',
+              value: `${SATELLITE_TELEMETRY_STATS.overallAccuracyPct}%`,
+              unit: '',
+              sub: 'XGBoost + TreeSHAP Ensemble',
+              icon: Cpu,
+              color: 'geo',
+              borderColor: 'rgba(22,163,74,0.25)',
+              accentColor: '#22c55e',
+            },
+            {
+              label: 'TRIAGE LATENCY',
+              value: '< 90s',
+              unit: 'INGEST TO DISPATCH',
+              sub: 'Automated DDMA & NDRF routing',
+              icon: Activity,
+              color: 'amber',
+              borderColor: 'rgba(245,158,11,0.25)',
+              accentColor: '#f59e0b',
+            },
+          ].map((stat, i) => {
+            const Icon = stat.icon;
+            return (
+              <div
+                key={i}
+                className="glass-card stat-card p-5 rounded-2xl relative overflow-hidden"
+                style={{ border: `1px solid ${stat.borderColor}`, background: stat.bg || undefined }}
+              >
+                <div className="flex items-center justify-between text-slate-400 text-[10px] font-mono mb-2">
+                  <span className="tracking-widest">{stat.label}</span>
+                  <Icon className="w-4 h-4" style={{ color: stat.accentColor }} />
+                </div>
+                <div className="text-3xl font-black font-mono" style={{ color: stat.accentColor }}>
+                  {stat.value}
+                  {stat.unit && <span className="text-[10px] text-slate-400 font-normal ml-1">{stat.unit}</span>}
+                </div>
+                <p className="mt-1 text-[10px] text-slate-500">{stat.sub}</p>
+                <div 
+                  className="absolute bottom-0 left-0 right-0 h-px"
+                  style={{ background: `linear-gradient(90deg, ${stat.accentColor}, transparent)` }}
+                />
+              </div>
+            );
+          })}
         </div>
 
-        {/* Demo Hotspots Showcase (Tamil Nadu Focus) */}
-        <div className="mt-16">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6">
+        {/* ── HOTSPOT SHOWCASE ── */}
+        <div className="mt-20">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8">
             <div>
-              <div className="flex items-center space-x-2 text-xs font-mono text-thermal uppercase tracking-wider">
+              <div className="flex items-center space-x-2 text-[11px] font-mono text-thermal uppercase tracking-widest mb-2">
                 <MapPin className="w-4 h-4" />
                 <span>Operational Demonstration Targets</span>
               </div>
-              <h2 className="text-2xl sm:text-3xl font-bold text-white mt-1">
-                Tamil Nadu Strategic Hotspots
+              <h2 className="text-3xl sm:text-4xl font-black text-white">
+                Tamil Nadu{' '}
+                <span style={{
+                  background: 'linear-gradient(135deg, #06b6d4, #3b82f6)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
+                  Strategic
+                </span>{' '}
+                Hotspots
               </h2>
             </div>
             <button
               onClick={() => { soundFx.playClick(); onLaunchDashboard(); }}
-              className="mt-3 sm:mt-0 text-xs font-mono text-slate-300 hover:text-thermal flex items-center space-x-1"
+              className="mt-4 sm:mt-0 text-[11px] font-mono text-slate-400 hover:text-thermal flex items-center space-x-1.5 transition-colors group"
             >
               <span>View all on Command Map</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {DEMO_HOTSPOTS.slice(0, 8).map((spot) => {
+            {DEMO_HOTSPOTS.slice(0, 8).map((spot, idx) => {
               const isCritical = spot.riskLevel === 'CRITICAL';
-              const isHigh = spot.riskLevel === 'HIGH';
+              const isHigh     = spot.riskLevel === 'HIGH';
               const isModerate = spot.riskLevel === 'MODERATE';
+
+              const borderBase  = isCritical ? 'rgba(220,38,38,0.30)' : isHigh ? 'rgba(249,115,22,0.30)' : isModerate ? 'rgba(245,158,11,0.25)' : 'rgba(22,163,74,0.25)';
+              const dotColor    = isCritical ? '#dc2626' : isHigh ? '#f97316' : isModerate ? '#f59e0b' : '#22c55e';
+              const badgeClass  = isCritical
+                ? 'bg-critical/15 text-critical-light border-critical/35'
+                : isHigh
+                ? 'bg-thermal/15 text-thermal-light border-thermal/35'
+                : isModerate
+                ? 'bg-amber-500/15 text-amber-300 border-amber-500/35'
+                : 'bg-geo/15 text-geo-light border-geo/35';
+
+              const frpPct = Math.min(100, (spot.frp / 500) * 100);
 
               return (
                 <div
                   key={spot.id}
-                  onClick={() => {
-                    soundFx.playClick();
-                    onSelectHotspot(spot.id);
+                  onClick={() => { soundFx.playClick(); onSelectHotspot(spot.id); }}
+                  className="glass-card glass-card-hover p-4 rounded-2xl cursor-pointer group hud-corners"
+                  style={{ 
+                    border: `1px solid ${borderBase}`,
+                    animationDelay: `${idx * 60}ms`
                   }}
-                  className={`glass-card p-4 rounded-xl border transition-all cursor-pointer group hover:scale-[1.02] ${
-                    isCritical 
-                      ? 'border-critical/40 hover:border-critical hover:shadow-critical-glow' 
-                      : isHigh 
-                      ? 'border-thermal/40 hover:border-thermal hover:shadow-thermal-glow'
-                      : isModerate
-                      ? 'border-amber-500/30 hover:border-amber-400'
-                      : 'border-geo/30 hover:border-geo'
-                  }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-mono text-slate-400">{spot.district}, TN</span>
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full uppercase ${
-                      isCritical ? 'bg-critical/20 text-critical-light border border-critical/40' :
-                      isHigh ? 'bg-thermal/20 text-thermal-light border border-thermal/40' :
-                      isModerate ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
-                      'bg-geo/20 text-geo-light border border-geo/40'
-                    }`}>
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-[10px] font-mono text-slate-500">{spot.district}, TN</span>
+                    <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full uppercase border ${badgeClass}`}>
                       {spot.riskLevel}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-white group-hover:text-thermal transition-colors line-clamp-1">
+                  <h3 className="text-sm font-bold text-white group-hover:text-thermal-light transition-colors line-clamp-1 mb-1">
                     {spot.name.split('–')[0]}
                   </h3>
-                  <div className="mt-1 text-xs text-slate-300 flex items-center space-x-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                    <span>{spot.category}</span>
+
+                  <div className="flex items-center space-x-1.5 text-[11px] text-slate-400 mb-3">
+                    <span 
+                      className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                      style={{ background: dotColor, boxShadow: `0 0 6px ${dotColor}` }}
+                    />
+                    <span className="truncate">{spot.category}</span>
                   </div>
 
-                  <div className="mt-3 pt-3 border-t border-white/5 flex items-center justify-between text-xs font-mono">
-                    <div className="text-slate-400">
-                      FRP: <span className="text-white font-bold">{spot.frp} MW</span>
+                  {/* FRP progress bar */}
+                  <div className="mb-3">
+                    <div className="flex justify-between text-[9px] font-mono text-slate-500 mb-1">
+                      <span>FRP</span>
+                      <span style={{ color: dotColor }} className="font-bold">{spot.frp} MW</span>
                     </div>
-                    <div className="text-slate-400">
-                      Risk: <span className={`font-bold ${isCritical ? 'text-critical-light' : isHigh ? 'text-thermal-light' : 'text-slate-200'}`}>
-                        {spot.riskScore}/100
-                      </span>
+                    <div className="h-1 bg-space-800 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full rounded-full frp-bar"
+                        style={{ 
+                          width: `${frpPct}%`,
+                          background: isCritical 
+                            ? 'linear-gradient(90deg, #dc2626, #f97316)' 
+                            : isHigh 
+                            ? 'linear-gradient(90deg, #f97316, #fbbf24)'
+                            : 'linear-gradient(90deg, #f59e0b, #22c55e)'
+                        }} 
+                      />
                     </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-white/05 flex items-center justify-between text-[10px] font-mono">
+                    <span className="text-slate-500">
+                      Risk: <span className="text-white font-bold">{spot.riskScore}/100</span>
+                    </span>
+                    <span className="text-slate-500">
+                      Conf: <span className="text-ai-light font-bold">{spot.confidence}%</span>
+                    </span>
                   </div>
                 </div>
               );
@@ -471,37 +629,52 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
           </div>
         </div>
 
-        {/* Feature Pillars */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="glass-card p-6 rounded-2xl border border-white/10">
-            <div className="p-3 w-12 h-12 rounded-xl bg-ai/10 border border-ai/30 flex items-center justify-center text-ai-light mb-4">
-              <Layers className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Geospatial Sensor Fusion</h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              Automated ingestion from NASA FIRMS (VIIRS 375m I-Band, MODIS 1km) fused with ISRO INSAT-3DR geostationary imagery and OpenStreetMap industrial land registry layers.
-            </p>
-          </div>
-
-          <div className="glass-card p-6 rounded-2xl border border-white/10">
-            <div className="p-3 w-12 h-12 rounded-xl bg-thermal/10 border border-thermal/30 flex items-center justify-center text-thermal mb-4">
-              <BrainCircuit className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">XGBoost & SHAP Attribution</h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              Ensemble gradient boosted trees trained on 50,000+ historical anomalies with TreeSHAP local attribution bars, explaining why every hotspot is classified with mathematical transparency.
-            </p>
-          </div>
-
-          <div className="glass-card p-6 rounded-2xl border border-white/10">
-            <div className="p-3 w-12 h-12 rounded-xl bg-critical/10 border border-critical/30 flex items-center justify-center text-critical-light mb-4">
-              <ShieldAlert className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold text-white">Automated Defense Triage</h3>
-            <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-              Dynamic risk index (0–100) scoring severity using distance-to-hazmat buffers, population settlement density, wind vectors, and persistence recurrence, dispatching instant notifications to DDMA.
-            </p>
-          </div>
+        {/* ── FEATURE PILLARS ── */}
+        <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              icon: Layers,
+              iconBg: 'bg-ai/08 border-ai/25',
+              iconColor: 'text-ai-light',
+              title: 'Geospatial Sensor Fusion',
+              body: 'Automated ingestion from NASA FIRMS (VIIRS 375m I-Band, MODIS 1km) fused with ISRO INSAT-3DR geostationary imagery and OpenStreetMap industrial land registry layers.',
+              accent: 'rgba(37,99,235,0.15)',
+            },
+            {
+              icon: BrainCircuit,
+              iconBg: 'bg-thermal/08 border-thermal/25',
+              iconColor: 'text-thermal',
+              title: 'XGBoost & SHAP Attribution',
+              body: 'Ensemble gradient boosted trees trained on 50,000+ historical anomalies with TreeSHAP local attribution bars, explaining every classification with mathematical transparency.',
+              accent: 'rgba(249,115,22,0.15)',
+            },
+            {
+              icon: ShieldAlert,
+              iconBg: 'bg-critical/08 border-critical/25',
+              iconColor: 'text-critical-light',
+              title: 'Automated Defense Triage',
+              body: 'Dynamic risk index (0–100) scoring severity using hazmat buffers, population density, wind vectors, and persistence — dispatching instant DDMA/NDRF notifications.',
+              accent: 'rgba(220,38,38,0.12)',
+            },
+          ].map((pillar, i) => {
+            const Icon = pillar.icon;
+            return (
+              <div
+                key={i}
+                className="glass-card glass-card-hover p-7 rounded-3xl border border-white/08 relative overflow-hidden group"
+              >
+                <div 
+                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  style={{ background: `radial-gradient(ellipse at 30% 30%, ${pillar.accent}, transparent 60%)` }}
+                />
+                <div className={`relative p-3 w-12 h-12 rounded-2xl border ${pillar.iconBg} flex items-center justify-center mb-5`}>
+                  <Icon className={`w-6 h-6 ${pillar.iconColor}`} />
+                </div>
+                <h3 className="relative text-lg font-bold text-white mb-3">{pillar.title}</h3>
+                <p className="relative text-sm text-slate-400 leading-relaxed">{pillar.body}</p>
+              </div>
+            );
+          })}
         </div>
 
       </div>
