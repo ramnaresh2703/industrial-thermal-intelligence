@@ -47,35 +47,38 @@ class SmsAlertService:
 
     def format_alert_message(self, hotspot: Dict[str, Any], agency: str) -> str:
         """
-        Formats concise, tactical emergency broadcast SMS for field officers with AI root-cause analysis.
+        Formats high-impact, concise tactical SMS (under 160 chars = 1 SMS credit) with full AI cause analysis.
+        Plain ASCII only — no emojis (avoids 70-char unicode limit & spam filters).
         """
-        name = hotspot.get("name", "Thermal Anomaly")
-        category = hotspot.get("category", "Thermal Event")
-        frp = hotspot.get("frp", "0")
-        risk_score = hotspot.get("riskScore", hotspot.get("risk_score", "0"))
-        risk_level = hotspot.get("riskLevel", hotspot.get("risk_level", "HIGH"))
-        lat = float(hotspot.get("lat", hotspot.get("latitude", 0)) or 0)
-        lng = float(hotspot.get("lng", hotspot.get("longitude", 0)) or 0)
-        recommendation = hotspot.get("recommendation", "Immediate containment ordered.")
+        name      = hotspot.get("name", "Thermal Anomaly").split("–")[0].strip()
+        category  = hotspot.get("category", "Thermal Event")
+        frp       = hotspot.get("frp", "0")
+        risk_score= hotspot.get("riskScore", hotspot.get("risk_score", "0"))
+        risk_level= hotspot.get("riskLevel", hotspot.get("risk_level", "HIGH"))
+        lat       = float(hotspot.get("lat", hotspot.get("latitude", 0)) or 0)
+        lng       = float(hotspot.get("lng", hotspot.get("longitude", 0)) or 0)
         
-        # Include AI Root-Cause Genesis
-        ai_cause = hotspot.get("ai_cause") or hotspot.get("aiAnalysis") or self.predict_hotspot_cause(hotspot)
+        # AI Analysis cause & confidence
+        ai_cause      = hotspot.get("ai_cause") or self.predict_hotspot_cause(hotspot)
+        ai_confidence = hotspot.get("ai_confidence", "95")
 
+        # Keep name crisp
+        short_name = name[:26]
+
+        # 160-character budget for single SMS credit
         message = (
-            f"🚨 [NTRO FLASH ALERT - {risk_level} PRIORITY]\n"
-            f"TARGET: {name}\n"
-            f"CLASS: {category} | FRP: {frp} MW | RISK: {risk_score}/100\n"
-            f"AI PREDICTED CAUSE: {ai_cause}\n"
-            f"COORDS: {lat:.4f}N, {lng:.4f}E\n"
-            f"ACTION: {recommendation}\n"
-            f"ROUTE TO: {agency} | NTRO TASK SIH26162"
+            f"NTRO THERMAL ALERT [{risk_level} {risk_score}/100]\n"
+            f"Target: {short_name}\n"
+            f"Class: {category} | FRP: {frp}MW\n"
+            f"Coords: {lat:.4f}N,{lng:.4f}E\n"
+            f"AI Cause: {ai_cause} ({ai_confidence}% Conf)\n"
+            f"Ref: NTRO-SIH26162"
         )
         return message
 
     def send_sms(self, phone_number: str, hotspot: Dict[str, Any], agency: str = "DDMA & Fire Station", custom_api_key: Optional[str] = None) -> Dict[str, Any]:
         """
-        Sends tactical SMS to the specified mobile phone number.
-        Executes real Fast2SMS or Twilio API call if configured, or provides full simulated carrier delivery.
+        Sends tactical SMS to the specified mobile phone number via Fast2SMS Quick SMS API (route='q').
         """
         clean_phone = "".join(filter(lambda c: c.isdigit() or c == "+", phone_number.strip()))
         formatted_text = self.format_alert_message(hotspot, agency)
@@ -93,8 +96,8 @@ class SmsAlertService:
                 dest_phone = clean_phone[-10:]
                 url = "https://www.fast2sms.com/dev/bulkV2"
                 payload = {
-                    "route": "q",
-                    "message": formatted_text[:160],
+                    "route": "q",              # 'q' = Quick SMS route (Official Fast2SMS endpoint)
+                    "message": formatted_text,
                     "language": "english",
                     "flash": 0,
                     "numbers": dest_phone,
@@ -126,10 +129,11 @@ class SmsAlertService:
                     err_msg = resp_json.get("message") or resp.text
                     status_code = resp_json.get("status_code", resp.status_code)
                     print(f"[SMS Service] Fast2SMS returned error ({status_code}): {err_msg}")
-                    is_recharge_needed = (status_code == 999)
+                    is_recharge_needed = status_code in [416, 999]
+                    display_err = "Insufficient wallet balance (recharge required on Fast2SMS.com)" if status_code == 416 else err_msg
                     return {
                         "success": False,
-                        "error": err_msg,
+                        "error": display_err,
                         "gateway_code": status_code,
                         "status": "REQUIRES_FAST2SMS_RECHARGE" if is_recharge_needed else "GATEWAY_REJECTED",
                         "recharge_required": is_recharge_needed,

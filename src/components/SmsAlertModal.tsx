@@ -176,16 +176,20 @@ export const SmsAlertModal: React.FC<SmsAlertModalProps> = ({ hotspot, onClose }
         agency: agency,
         api_key: apiKey.trim() || undefined,
         hotspot: {
-          id: hotspot.id,
-          name: hotspot.name,
-          category: hotspot.category,
-          frp: hotspot.frp,
-          riskScore: hotspot.riskScore,
-          riskLevel: hotspot.riskLevel,
-          lat: hotspot.lat,
-          lng: hotspot.lng,
-          recommendation: hotspot.recommendation,
-          ai_cause: aiAnalysis.cause
+          id:            hotspot.id,
+          name:          hotspot.name,
+          category:      hotspot.category,
+          frp:           hotspot.frp,
+          riskScore:     hotspot.riskScore,
+          riskLevel:     hotspot.riskLevel,
+          lat:           hotspot.lat,
+          lng:           hotspot.lng,
+          recommendation:hotspot.recommendation,
+          // Full AI analysis block — all 4 fields
+          ai_cause:      aiAnalysis.cause,
+          ai_genesis:    aiAnalysis.genesis,
+          ai_confidence: aiAnalysis.confidence,
+          ai_spectral:   aiAnalysis.spectralSignature,
         }
       });
 
