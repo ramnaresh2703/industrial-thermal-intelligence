@@ -13,7 +13,8 @@ import {
   Info,
   RefreshCw,
   Cpu,
-  BarChart3
+  BarChart3,
+  Zap
 } from 'lucide-react';
 import { Hotspot, DEMO_HOTSPOTS } from '../data/hotspots';
 import { GLOBAL_SHAP_IMPORTANCE } from '../data/analyticsData';
@@ -427,6 +428,35 @@ export const ExplainabilityView: React.FC<ExplainabilityViewProps> = ({ initialH
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Enclosed Electrical Fire & Smoke Plume Multi-Spectral Physics Pipeline */}
+          <div className="glass-card p-5 rounded-2xl border border-purple-500/30 bg-purple-950/20">
+            <div className="flex items-center space-x-2 text-xs font-mono text-purple-300 uppercase mb-3 font-semibold">
+              <Zap className="w-4 h-4 text-purple-400 animate-pulse" />
+              <span>Enclosed Fire & Smoke Pattern Detection (Sentinel-5P + VIIRS)</span>
+            </div>
+            <div className="space-y-2.5 text-xs font-mono">
+              <div className="p-2.5 bg-black/40 rounded-lg border border-purple-500/20">
+                <div className="flex justify-between text-purple-200 font-bold mb-1">
+                  <span>1. Thermal-Optical Disparity</span>
+                  <span className="text-emerald-400">84% Match</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-sans">
+                  Detects hidden electrical wiring short-circuits under concrete/metal roofs via LWIR thermal conduction with zero visual open flame.
+                </p>
+              </div>
+
+              <div className="p-2.5 bg-black/40 rounded-lg border border-cyan-500/20">
+                <div className="flex justify-between text-cyan-200 font-bold mb-1">
+                  <span>2. Smoke Aerosol Index (AOD)</span>
+                  <span className="text-cyan-400">0.88 AOD</span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-sans">
+                  Dense toxic PVC wire insulation smoke venting through roof exhausts detected by Sentinel-5P TROPOMI spectrometer.
+                </p>
+              </div>
             </div>
           </div>
         </div>

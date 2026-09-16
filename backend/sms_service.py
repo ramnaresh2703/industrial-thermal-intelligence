@@ -24,7 +24,9 @@ class SmsAlertService:
         name = str(hotspot.get("name", "")).lower()
         frp = float(hotspot.get("frp", 0) or 0)
 
-        if "steel" in category or "steel" in name or "furnace" in category or "smelt" in name:
+        if "enclosed" in category or "electrical" in category or "cable" in name or "wire" in name or "switchgear" in name or "short" in name:
+            return "Enclosed electrical wiring short-circuit & smoldering roof smoke plume"
+        elif "steel" in category or "steel" in name or "furnace" in category or "smelt" in name:
             return "Blast furnace slag tap & ladle refractory thermal breach"
         elif "petro" in category or "refinery" in category or "oil" in name or "flaring" in category:
             return "Hydrocarbon gas flaring & catalytic cracker heat discharge"

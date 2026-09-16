@@ -24,7 +24,17 @@ import {
   Sliders,
   CheckCircle2,
   Navigation,
-  Globe2
+  Globe2,
+  Zap,
+  Wind,
+  AlertOctagon,
+  Sparkles,
+  ShieldAlert,
+  Cpu,
+  Thermometer,
+  X,
+  Gauge,
+  Info
 } from 'lucide-react';
 import type { Hotspot } from '../data/hotspots';
 import { DEMO_HOTSPOTS } from '../data/hotspots';
@@ -57,6 +67,8 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [minFRP, setMinFRP] = useState<number>(0);
   const [isHeatmapMode, setIsHeatmapMode] = useState<boolean>(true);
+  const [showEnclosedModal, setShowEnclosedModal] = useState<boolean>(false);
+  const [enclosedModalHotspot, setEnclosedModalHotspot] = useState<Hotspot | null>(null);
   
   // Basemap switcher: 'satellite' | 'esri-dark' | 'topo'
   const [basemapMode, setBasemapMode] = useState<'satellite' | 'esri-dark' | 'topo'>('satellite');
@@ -73,6 +85,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   const categories = [
     'ALL',
     'Industrial Fire',
+    'Enclosed Electrical & Smoke Anomaly',
     'Refinery Flare',
     'Forest Fire',
     'Thermal Power Plant',
@@ -131,7 +144,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
         soundFx.playSuccess();
         setFirmsSyncCount(data.anomalies.length);
         
-        // Transform live NASA detections into Hotspot format (up to 250 detections across India)
+        // Transform live NASA detections into Hotspot format
         const converted = data.anomalies.slice(0, 250).map((anom: any, idx: number) => ({
           id: `NASA-FIRMS-${idx + 1}`,
           name: anom.target || `NASA VIIRS Sat-Detect #${idx + 1}`,
@@ -173,20 +186,21 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
     }
   };
 
-  // Create custom pulsing SVG radar blips
+  // Create custom pulsing SVG radar blips with High-Intensity Critical Alarm Strobe
   const createPulsingMarkerIcon = (hotspot: Hotspot, isSelected: boolean) => {
     const isCritical = hotspot.riskLevel === 'CRITICAL';
     const isHigh = hotspot.riskLevel === 'HIGH';
     const isModerate = hotspot.riskLevel === 'MODERATE';
+    const isEnclosed = hotspot.category === 'Enclosed Electrical & Smoke Anomaly';
 
     let color = '#16a34a';
     let pulseClass = 'pulse-marker-low';
     let ringColor = 'rgba(22, 163, 74, 0.4)';
 
     if (isCritical) {
-      color = '#dc2626';
+      color = '#ef4444';
       pulseClass = 'pulse-marker-critical';
-      ringColor = 'rgba(220, 38, 38, 0.6)';
+      ringColor = 'rgba(239, 68, 68, 0.7)';
     } else if (isHigh) {
       color = '#f97316';
       pulseClass = 'pulse-marker-high';
@@ -197,10 +211,72 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
       ringColor = 'rgba(245, 158, 11, 0.5)';
     }
 
-    const size = isSelected ? 38 : 28;
-    const borderGlow = isSelected ? '4px solid #ffffff' : `2px solid ${color}`;
+    const size = isSelected ? 42 : isCritical ? 34 : 26;
+    const borderGlow = isSelected ? '3px solid #ffffff' : isCritical ? '2px solid #ffffff' : `2px solid ${color}`;
 
-    const html = `
+    // Critical Emergency Strobe Beacon HTML with dual expanding shockwaves
+    const html = isCritical ? `
+      <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
+        <!-- Dual Expanding Sonic Shockwaves for Critical Red Alert -->
+        <div class="critical-shockwave"></div>
+        <div class="critical-shockwave critical-shockwave-delayed"></div>
+        
+        <!-- High-Intensity Flashing Core Strobe -->
+        <div class="${pulseClass}" style="
+          position: absolute; 
+          width: 100%; 
+          height: 100%; 
+          border-radius: 50%; 
+          background: ${ringColor};
+        "></div>
+        
+        <!-- Center Alert Beacon with Glowing Border -->
+        <div style="
+          width: ${size * 0.72}px; 
+          height: ${size * 0.72}px; 
+          background: radial-gradient(circle at 30% 30%, #ff4d4d, #b91c1c); 
+          border-radius: 50%; 
+          border: ${borderGlow};
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 0 20px #ef4444, 0 0 40px rgba(239,68,68,0.8);
+          z-index: 10;
+        ">
+          ${isEnclosed ? `
+            <svg style="width: 13px; height: 13px; color: white; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+          ` : `
+            <svg style="width: 13px; height: 13px; color: white; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+          `}
+        </div>
+
+        <!-- Floating Critical Alert Pill Tag -->
+        <div style="
+          position: absolute;
+          top: -14px;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #ef4444;
+          color: white;
+          font-size: 8px;
+          font-weight: 900;
+          font-family: monospace;
+          padding: 1px 4px;
+          border-radius: 4px;
+          border: 1px solid rgba(255,255,255,0.7);
+          box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+          white-space: nowrap;
+          pointer-events: none;
+          letter-spacing: 0.5px;
+        ">
+          ${isEnclosed ? '⚡SMOKE' : 'ALERT'}
+        </div>
+      </div>
+    ` : `
       <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
         <div class="${pulseClass}" style="position: absolute; width: 100%; height: 100%; border-radius: 50%; background: ${ringColor};"></div>
         <div style="
@@ -212,10 +288,10 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 15px ${color};
+          box-shadow: 0 0 14px ${color};
           z-index: 10;
         ">
-          <svg style="width: 12px; height: 12px; color: white; fill: currentColor;" viewBox="0 0 24 24">
+          <svg style="width: 11px; height: 11px; color: white; fill: currentColor;" viewBox="0 0 24 24">
             <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 3z"/>
           </svg>
         </div>
@@ -248,37 +324,61 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   };
 
   return (
-    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-[#050816] text-slate-100 overflow-hidden relative">
+    <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-[#03050c] text-slate-100 overflow-hidden relative">
       
-      {/* LEFT SIDEBAR: Real-Time Alerts Feed & Filters */}
-      <div className="w-full lg:w-96 flex-shrink-0 bg-space-900/95 backdrop-blur-xl border-r border-white/10 flex flex-col z-20 shadow-2xl h-[42vh] lg:h-full">
+      {/* ── LEFT SIDEBAR: Graphical Telemetry Feed & Filters ── */}
+      <div className="w-full lg:w-[410px] flex-shrink-0 bg-space-900/95 backdrop-blur-2xl border-r border-white/10 flex flex-col z-20 shadow-2xl h-[45vh] lg:h-full">
         
-        {/* Sidebar Header & Live Counter */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center justify-between mb-3">
+        {/* Sidebar Header & Live Counters */}
+        <div className="p-3.5 border-b border-white/10 bg-space-950/70">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="flex items-center space-x-2">
               <span className="p-1.5 rounded-lg bg-thermal/20 text-thermal border border-thermal/30">
                 <Flame className="w-4 h-4 animate-pulse" />
               </span>
               <div>
-                <h2 className="text-sm font-bold tracking-wider text-white uppercase">
-                  National Telemetry Feed
+                <h2 className="text-xs font-black tracking-wider text-white uppercase flex items-center space-x-1.5">
+                  <span>National Anomaly Feed</span>
+                  <span className="px-1.5 py-0.2 bg-critical/20 text-critical border border-critical/40 rounded text-[9px] font-mono animate-pulse">
+                    LIVE
+                  </span>
                 </h2>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {filteredHotspots.length} HOTSPOTS IN VIEW
-                </span>
+                <div className="text-[10px] text-slate-400 font-mono flex items-center space-x-2">
+                  <span>{filteredHotspots.length} NODES</span>
+                  <span>•</span>
+                  <span className="text-critical font-bold">
+                    {filteredHotspots.filter(h => h.riskLevel === 'CRITICAL').length} CRITICAL BLINKING
+                  </span>
+                </div>
               </div>
             </div>
 
-            <button
-              onClick={handleSyncLiveFirms}
-              disabled={isSyncingFirms}
-              className="flex items-center space-x-1.5 px-2.5 py-1 bg-ai/20 hover:bg-ai/30 text-ai-light border border-ai/40 rounded-lg text-[10px] font-mono font-bold transition-all disabled:opacity-50"
-              title="Downlink latest NASA VIIRS passes"
-            >
-              <RefreshCw className={`w-3 h-3 ${isSyncingFirms ? 'animate-spin' : ''}`} />
-              <span>{isSyncingFirms ? 'Syncing...' : 'Sync FIRMS'}</span>
-            </button>
+            {/* Enclosed Fire Radar & FIRMS Sync Buttons */}
+            <div className="flex items-center space-x-1.5">
+              <button
+                onClick={() => {
+                  soundFx.playClick();
+                  const enc = DEMO_HOTSPOTS.find(h => h.category === 'Enclosed Electrical & Smoke Anomaly');
+                  setEnclosedModalHotspot(enc || null);
+                  setShowEnclosedModal(true);
+                }}
+                className="flex items-center space-x-1 px-2 py-1 bg-purple-950/60 hover:bg-purple-900 text-purple-300 border border-purple-500/40 rounded-lg text-[10px] font-mono font-bold transition-all shadow-sm"
+                title="Enclosed Electrical Fire & Smoke Plume Radar"
+              >
+                <Zap className="w-3 h-3 text-purple-400 animate-pulse" />
+                <span className="hidden sm:inline">Smoke Radar</span>
+              </button>
+
+              <button
+                onClick={handleSyncLiveFirms}
+                disabled={isSyncingFirms}
+                className="flex items-center space-x-1 px-2 py-1 bg-ai/20 hover:bg-ai/30 text-ai-light border border-ai/40 rounded-lg text-[10px] font-mono font-bold transition-all disabled:opacity-50"
+                title="Downlink latest NASA VIIRS passes"
+              >
+                <RefreshCw className={`w-3 h-3 ${isSyncingFirms ? 'animate-spin' : ''}`} />
+                <span>{isSyncingFirms ? 'Syncing' : 'Sync'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Search Bar */}
@@ -286,35 +386,34 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="Search state, district, industry..."
+              placeholder="Search target, state, electrical wire short..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-1.5 bg-space-800/80 border border-white/10 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-thermal/60 transition-colors"
             />
           </div>
 
-          {/* Region Quick Selector */}
-          <div className="mt-2.5">
-            <label className="text-[10px] font-mono text-slate-400 block mb-1">TARGET REGION / SECTOR</label>
-            <select
-              value={selectedRegion}
-              onChange={(e) => handleSelectRegion(e.target.value)}
-              className="w-full px-2 py-1 bg-space-800 border border-white/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-ai"
-            >
-              {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* Filter Row */}
-          <div className="mt-2.5 grid grid-cols-2 gap-2">
+          {/* Filter Pills Grid */}
+          <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] font-mono">
             <div>
-              <label className="text-[10px] font-mono text-slate-400 block mb-1">CATEGORY</label>
+              <label className="text-slate-500 block mb-0.5 text-[9px]">REGION</label>
+              <select
+                value={selectedRegion}
+                onChange={(e) => handleSelectRegion(e.target.value)}
+                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-ai"
+              >
+                {regions.map((r) => (
+                  <option key={r.id} value={r.id}>{r.label.split('(')[0]}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="text-slate-500 block mb-0.5 text-[9px]">CATEGORY</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => { setSelectedCategory(e.target.value); soundFx.playClick(); }}
-                className="w-full px-2 py-1 bg-space-800 border border-white/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-ai"
+                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-ai truncate"
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -323,11 +422,11 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
             </div>
 
             <div>
-              <label className="text-[10px] font-mono text-slate-400 block mb-1">RISK LEVEL</label>
+              <label className="text-slate-500 block mb-0.5 text-[9px]">RISK TIER</label>
               <select
                 value={selectedRisk}
                 onChange={(e) => { setSelectedRisk(e.target.value); soundFx.playClick(); }}
-                className="w-full px-2 py-1 bg-space-800 border border-white/10 rounded text-[11px] text-slate-200 focus:outline-none focus:border-critical"
+                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-critical"
               >
                 {riskLevels.map((r) => (
                   <option key={r} value={r}>{r}</option>
@@ -336,25 +435,24 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
             </div>
           </div>
 
-          {/* FRP Slider */}
-          <div className="mt-2.5">
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 mb-1">
-              <span>MIN FIRE RADIATIVE POWER</span>
-              <span className="text-thermal font-bold">{minFRP} MW</span>
+          {/* Mini FRP Range Meter */}
+          <div className="mt-2 flex items-center space-x-2">
+            <div className="text-[9px] font-mono text-slate-400 whitespace-nowrap">
+              MIN FRP: <span className="text-thermal font-bold">{minFRP}MW</span>
             </div>
             <input
               type="range"
               min="0"
-              max="700"
+              max="600"
               step="25"
               value={minFRP}
               onChange={(e) => setMinFRP(Number(e.target.value))}
-              className="w-full h-1 bg-space-700 rounded-lg appearance-none cursor-pointer accent-thermal"
+              className="flex-1 h-1 bg-space-700 rounded-lg appearance-none cursor-pointer accent-thermal"
             />
           </div>
         </div>
 
-        {/* Hotspots Alert List */}
+        {/* ── Hotspots Graphical Alert Cards ── */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/5 scrollbar-thin">
           {filteredHotspots.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs">
@@ -366,36 +464,42 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
               const isCritical = spot.riskLevel === 'CRITICAL';
               const isHigh = spot.riskLevel === 'HIGH';
               const isModerate = spot.riskLevel === 'MODERATE';
+              const isEnclosed = spot.category === 'Enclosed Electrical & Smoke Anomaly';
+
+              const frpPct = Math.min(100, (spot.frp / 600) * 100);
 
               return (
                 <div
                   key={spot.id}
                   onClick={() => handleSpotClick(spot)}
-                  className={`p-3.5 transition-all cursor-pointer group hover:bg-white/5 ${
+                  className={`p-3 transition-all cursor-pointer group hover:bg-white/5 ${
                     isSelected ? 'bg-thermal/15 border-l-4 border-thermal' : ''
-                  }`}
+                  } ${isCritical ? 'bg-red-950/15' : ''}`}
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0 pr-2">
-                      <div className="flex items-center space-x-2">
-                        <span className={`w-2 h-2 rounded-full ${
+                  {/* Card Header: Location + Status Badge */}
+                  <div className="flex items-start justify-between gap-1 mb-1.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center space-x-1.5">
+                        {/* Flashing Status Dot */}
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
                           isCritical ? 'bg-critical animate-ping' :
                           isHigh ? 'bg-thermal' :
                           isModerate ? 'bg-amber-400' : 'bg-geo'
                         }`} />
                         <h4 className="text-xs font-bold text-white group-hover:text-thermal transition-colors truncate">
-                          {spot.name}
+                          {spot.name.split('–')[0]}
                         </h4>
                       </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5 flex items-center space-x-1">
-                        <MapPin className="w-3 h-3 text-slate-500" />
-                        <span>{spot.district}, {spot.state}</span>
-                      </p>
+                      <div className="text-[10px] text-slate-400 flex items-center space-x-1 mt-0.5">
+                        <MapPin className="w-2.5 h-2.5 text-slate-500" />
+                        <span className="truncate">{spot.district}, {spot.state}</span>
+                      </div>
                     </div>
 
-                    <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase ${
-                      isCritical ? 'bg-critical/20 text-critical-light border border-critical/30' :
-                      isHigh ? 'bg-thermal/20 text-thermal-light border border-thermal/30' :
+                    {/* Risk Badge with Glowing Border */}
+                    <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0 ${
+                      isCritical ? 'bg-critical/20 text-critical-light border border-critical/50 shadow-[0_0_10px_rgba(220,38,38,0.4)] animate-pulse' :
+                      isHigh ? 'bg-thermal/20 text-thermal-light border border-thermal/40' :
                       isModerate ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
                       'bg-geo/20 text-geo-light border border-geo/30'
                     }`}>
@@ -403,25 +507,55 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                     </span>
                   </div>
 
-                  <div className="mt-2 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                  {/* ── Graphical Telemetry Meters ── */}
+                  <div className="space-y-1.5 my-2">
+                    {/* FRP Radiance Progress Bar */}
                     <div>
-                      FRP: <span className="text-white font-bold">{spot.frp} MW</span>
+                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 mb-0.5">
+                        <span className="flex items-center space-x-1">
+                          <Thermometer className="w-2.5 h-2.5 text-thermal" />
+                          <span>FIRE POWER (FRP)</span>
+                        </span>
+                        <span className="text-white font-bold">{spot.frp} MW</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-space-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full rounded-full transition-all duration-500"
+                          style={{
+                            width: `${frpPct}%`,
+                            background: isCritical 
+                              ? 'linear-gradient(90deg, #f97316, #ef4444)' 
+                              : isHigh 
+                              ? 'linear-gradient(90deg, #f59e0b, #f97316)' 
+                              : 'linear-gradient(90deg, #10b981, #f59e0b)'
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      Conf: <span className="text-ai-light font-bold">{spot.confidence}%</span>
-                    </div>
-                    <div>
-                      Score: <span className={`font-bold ${isCritical ? 'text-critical' : isHigh ? 'text-thermal' : 'text-slate-300'}`}>
-                        {spot.riskScore}/100
-                      </span>
-                    </div>
+
+                    {/* Enclosed Smoke Plume Indicator if applicable */}
+                    {isEnclosed && (
+                      <div className="px-2 py-1 bg-purple-950/60 rounded-md border border-purple-500/40 flex items-center justify-between text-[9px] font-mono">
+                        <span className="text-purple-300 flex items-center space-x-1 font-bold">
+                          <Zap className="w-2.5 h-2.5 text-purple-400" />
+                          <span>ENCLOSED WIRE SHORT</span>
+                        </span>
+                        <span className="text-cyan-300 font-bold">
+                          AOD: {spot.smokeAodIndex || 0.88} SMOKE
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Actions Row */}
-                  <div className="mt-2 flex items-center justify-between pt-2 border-t border-white/5">
-                    <span className="text-[10px] text-slate-500 truncate max-w-[140px]">
-                      {spot.nearbyIndustry}
-                    </span>
+                  {/* Compact Info Chips */}
+                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1.5 border-t border-white/5">
+                    <div className="flex items-center space-x-2">
+                      <span>Score: <strong className={isCritical ? 'text-critical' : 'text-white'}>{spot.riskScore}/100</strong></span>
+                      <span>•</span>
+                      <span>Conf: <strong className="text-ai-light">{spot.confidence}%</strong></span>
+                    </div>
+
+                    {/* Action Buttons */}
                     <div className="flex items-center space-x-1.5">
                       <button
                         onClick={(e) => {
@@ -429,11 +563,11 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                           soundFx.playAlert();
                           onOpenSmsModal(spot);
                         }}
-                        className="px-2.5 py-1 rounded bg-critical/20 hover:bg-critical text-critical-light hover:text-white text-[10px] font-mono font-bold flex items-center space-x-1 transition-all border border-critical/40 shadow-sm"
+                        className="px-2 py-0.5 rounded bg-critical/20 hover:bg-critical text-critical-light hover:text-white text-[9px] font-mono font-bold flex items-center space-x-1 transition-all border border-critical/40 shadow-sm"
                         title="Send tactical SMS with AI root-cause analysis"
                       >
-                        <Smartphone className="w-3 h-3 text-critical-light" />
-                        <span>Send SMS</span>
+                        <Smartphone className="w-2.5 h-2.5 text-critical-light" />
+                        <span>SMS</span>
                       </button>
                       <button
                         onClick={(e) => {
@@ -441,9 +575,9 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                           soundFx.playClick();
                           onSelectHotspot(spot);
                         }}
-                        className="px-2 py-0.5 rounded bg-white/5 hover:bg-thermal/20 hover:text-thermal text-slate-300 text-[10px] font-mono flex items-center space-x-1 transition-colors border border-white/5"
+                        className="px-2 py-0.5 rounded bg-white/5 hover:bg-thermal/20 hover:text-thermal text-slate-300 text-[9px] font-mono flex items-center space-x-1 transition-colors border border-white/5"
                       >
-                        <Eye className="w-3 h-3 text-thermal" />
+                        <Eye className="w-2.5 h-2.5 text-thermal" />
                         <span>Inspect</span>
                       </button>
                     </div>
@@ -455,22 +589,20 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
         </div>
 
         {/* Sidebar Footer */}
-        <div className="p-3 bg-space-950/80 border-t border-white/10 text-[10px] font-mono text-slate-400 flex items-center justify-between">
+        <div className="p-2.5 bg-space-950/90 border-t border-white/10 text-[10px] font-mono text-slate-400 flex items-center justify-between">
           <span className="flex items-center space-x-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-geo animate-pulse" />
-            <span>FIRMS DOWNLINK: SYNCED</span>
+            <span>VIIRS NOAA-20 / MODIS ACTIVE</span>
           </span>
-          <span className="text-ai-light font-bold">ALL INDIA RADAR ACTIVE</span>
+          <span className="text-thermal font-bold">DEFENSE MESH v2.4</span>
         </div>
       </div>
 
-      {/* RIGHT MAIN: Interactive Leaflet Map */}
-      <div className="flex-1 h-[58vh] lg:h-full relative overflow-hidden">
+      {/* ── RIGHT MAIN: Interactive Map with Critical Blip Strobe ── */}
+      <div className="flex-1 h-[55vh] lg:h-full relative overflow-hidden">
         
-        {/* Floating Controls Top Right: Multi-Basemap Switcher & Heatmap Toggle */}
+        {/* Floating Controls: Basemap Switcher */}
         <div className="absolute top-4 right-4 z-[400] flex flex-col items-end space-y-2">
-          
-          {/* Basemap Switcher Pill Dock */}
           <div className="bg-space-900/90 backdrop-blur-md p-1 rounded-xl border border-white/15 flex items-center space-x-1 shadow-2xl">
             <button
               onClick={() => { setBasemapMode('satellite'); soundFx.playClick(); }}
@@ -479,7 +611,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                   ? 'bg-gradient-to-r from-ai to-blue-700 text-white shadow-ai-glow'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="High-Resolution Orbital Satellite Imagery"
             >
               <Satellite className="w-3.5 h-3.5" />
               <span>Satellite</span>
@@ -492,7 +623,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                   ? 'bg-gradient-to-r from-thermal to-orange-600 text-white shadow-thermal-glow'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Tactical Dark Gray Basemap with Crisp Labels"
             >
               <Activity className="w-3.5 h-3.5" />
               <span>Tactical Dark</span>
@@ -505,240 +635,158 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                   ? 'bg-gradient-to-r from-geo to-green-700 text-white shadow-geo-glow'
                   : 'text-slate-400 hover:text-white'
               }`}
-              title="Topographic Terrain & Elevation Relief"
             >
               <Mountain className="w-3.5 h-3.5" />
               <span>Topographic</span>
             </button>
           </div>
-
-          {/* Secondary Controls: Heatmap Mode & National Sync */}
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                setIsHeatmapMode(!isHeatmapMode);
-                soundFx.playClick();
-              }}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-mono font-semibold backdrop-blur-md border shadow-lg transition-all ${
-                isHeatmapMode 
-                  ? 'bg-thermal text-white border-white/30 shadow-thermal-glow' 
-                  : 'bg-space-900/90 text-slate-300 border-white/10 hover:bg-space-800'
-              }`}
-              title="Toggle Thermal Density Radiance Buffers"
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>Heatmap: {isHeatmapMode ? 'ON' : 'OFF'}</span>
-            </button>
-
-            {firmsSyncCount && (
-              <div className="hidden sm:flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 backdrop-blur-md shadow-md">
-                <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
-                <span>{firmsSyncCount} Live FIRMS Points</span>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Sector Quick Jump Floating Bar at Top Left */}
-        <div className="absolute top-4 left-4 z-[400] hidden md:flex items-center space-x-1 bg-space-900/90 backdrop-blur-md p-1.5 rounded-xl border border-white/15 text-xs font-mono shadow-2xl">
-          <span className="text-slate-400 px-2 flex items-center space-x-1 font-semibold">
-            <Navigation className="w-3.5 h-3.5 text-thermal" />
-            <span>SECTOR:</span>
+        {/* Floating Top Left: Real-Time Critical Alarm Banner */}
+        <div className="absolute top-4 left-4 z-[400] hidden sm:flex items-center space-x-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-critical/40 shadow-lg">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-critical opacity-80" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-critical" />
           </span>
-          <button
-            onClick={() => handleSelectRegion('ALL')}
-            className={`px-2.5 py-1 rounded-lg transition-colors ${selectedRegion === 'ALL' ? 'bg-white/15 text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-          >
-            All India
-          </button>
-          <button
-            onClick={() => handleSelectRegion('Tamil Nadu')}
-            className={`px-2.5 py-1 rounded-lg transition-colors ${selectedRegion === 'Tamil Nadu' ? 'bg-thermal text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-          >
-            Tamil Nadu
-          </button>
-          <button
-            onClick={() => handleSelectRegion('Western India')}
-            className={`px-2.5 py-1 rounded-lg transition-colors ${selectedRegion === 'Western India' ? 'bg-ai text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-          >
-            Gujarat/MH
-          </button>
-          <button
-            onClick={() => handleSelectRegion('Eastern India')}
-            className={`px-2.5 py-1 rounded-lg transition-colors ${selectedRegion === 'Eastern India' ? 'bg-amber-500 text-black font-bold' : 'text-slate-400 hover:text-white'}`}
-          >
-            Odisha/JH
-          </button>
-          <button
-            onClick={() => handleSelectRegion('Northern India')}
-            className={`px-2.5 py-1 rounded-lg transition-colors ${selectedRegion === 'Northern India' ? 'bg-geo text-white font-bold' : 'text-slate-400 hover:text-white'}`}
-          >
-            Punjab/HR
-          </button>
+          <span className="text-[11px] font-mono text-white font-bold tracking-wide">
+            CRITICAL BLIPS FLASHING WITH EXPANDING SHOCKWAVES
+          </span>
         </div>
 
-        {/* Tactical Legend Box */}
-        <div className="absolute bottom-4 left-4 z-[400] hidden sm:block bg-space-900/90 backdrop-blur-md p-3 rounded-xl border border-white/10 text-xs font-mono shadow-2xl">
-          <div className="text-[10px] text-slate-400 mb-2 font-bold uppercase tracking-wider">
-            Thermal Risk Classification
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-critical shadow-[0_0_8px_rgba(220,38,38,0.8)]" />
-              <span className="text-slate-200">Critical Emergency (&gt;85)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-thermal shadow-[0_0_8px_rgba(249,115,22,0.8)]" />
-              <span className="text-slate-200">High Risk Wildfire / Hazard (70-85)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)]" />
-              <span className="text-slate-200">Moderate Baseline Flare (40-69)</span>
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-geo shadow-[0_0_8px_rgba(22,163,74,0.8)]" />
-              <span className="text-slate-200">Low Agro / Monitored Plant (&lt;40)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Actual Leaflet Map */}
+        {/* ── Leaflet Interactive Map ── */}
         <MapContainer
           center={mapCenter}
           zoom={mapZoom}
-          scrollWheelZoom={true}
           className="w-full h-full"
+          zoomControl={true}
         >
           <MapController center={mapCenter} zoom={mapZoom} />
 
-          {/* Dynamic Basemap Rendering */}
+          {/* Dynamic Basemap Layer */}
           {basemapMode === 'satellite' && (
             <TileLayer
-              attribution='Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+              attribution='&copy; <a href="https://www.esri.com">Esri</a> World Imagery'
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
               maxZoom={18}
             />
           )}
 
           {basemapMode === 'esri-dark' && (
-            <>
-              <TileLayer
-                attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={16}
-              />
-              <TileLayer
-                attribution=''
-                url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
-                maxZoom={16}
-              />
-            </>
+            <TileLayer
+              attribution='&copy; <a href="https://carto.com/">CARTO</a> Dark Matter'
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              maxZoom={18}
+            />
           )}
 
           {basemapMode === 'topo' && (
             <TileLayer
-              attribution='Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ, TomTom, Intermap, iPC, USGS, FAO, NPS, NRCAN, GeoBase, Kadaster NL, Ordnance Survey, Esri Japan, METI, Esri China (Hong Kong), and the GIS User Community'
-              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; <a href="https://opentopomap.org">OpenTopoMap</a>'
+              url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
               maxZoom={17}
             />
           )}
 
-          {/* Heatmap Simulation Layer (Concentric glowing thermal radiance buffers) */}
-          {isHeatmapMode && filteredHotspots.map((spot) => {
+          {/* Thermal Conduction Proximity Buffers */}
+          {filteredHotspots.map((spot) => {
             const isCritical = spot.riskLevel === 'CRITICAL';
-            const radius = Math.max(12000, spot.frp * 80);
+            const radius = isCritical ? 2500 : 1200;
+            const bufferColor = isCritical ? '#ef4444' : '#f97316';
+
             return (
-              <React.Fragment key={`heat-${spot.id}`}>
-                <Circle
-                  center={[spot.lat, spot.lng]}
-                  radius={radius}
-                  pathOptions={{
-                    fillColor: isCritical ? '#dc2626' : '#f97316',
-                    fillOpacity: 0.25,
-                    color: 'transparent',
-                  }}
-                />
-                <Circle
-                  center={[spot.lat, spot.lng]}
-                  radius={radius * 0.5}
-                  pathOptions={{
-                    fillColor: '#ef4444',
-                    fillOpacity: 0.45,
-                    color: 'transparent',
-                  }}
-                />
-              </React.Fragment>
+              <Circle
+                key={`buffer-${spot.id}`}
+                center={[spot.lat, spot.lng]}
+                radius={radius}
+                pathOptions={{
+                  color: bufferColor,
+                  fillColor: bufferColor,
+                  fillOpacity: isCritical ? 0.12 : 0.06,
+                  weight: isCritical ? 1.5 : 0.8,
+                  dashArray: isCritical ? '4, 4' : undefined,
+                }}
+              />
             );
           })}
 
-          {/* Hotspot Markers */}
+          {/* Pulsing Hotspot Markers */}
           {filteredHotspots.map((spot) => {
             const isSelected = selectedHotspot?.id === spot.id;
+            const isCritical = spot.riskLevel === 'CRITICAL';
+            const isEnclosed = spot.category === 'Enclosed Electrical & Smoke Anomaly';
+
             return (
               <Marker
                 key={spot.id}
                 position={[spot.lat, spot.lng]}
                 icon={createPulsingMarkerIcon(spot, isSelected)}
                 eventHandlers={{
-                  click: () => handleSpotClick(spot),
+                  click: () => {
+                    handleSpotClick(spot);
+                  },
                 }}
               >
                 <Popup className="custom-popup">
-                  <div className="p-1 max-w-[270px] text-xs">
-                    <div className="flex items-center justify-between border-b border-white/10 pb-1.5 mb-2">
-                      <span className="font-mono text-[10px] text-slate-400">{spot.id}</span>
-                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase ${
-                        spot.riskLevel === 'CRITICAL' ? 'bg-critical text-white' :
-                        spot.riskLevel === 'HIGH' ? 'bg-thermal text-white' :
-                        spot.riskLevel === 'MODERATE' ? 'bg-amber-500 text-black' :
-                        'bg-geo text-white'
+                  <div className="p-3.5 max-w-[280px] font-sans">
+                    {/* Header with Risk Level */}
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] font-mono text-slate-400">{spot.district}, {spot.state}</span>
+                      <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
+                        isCritical ? 'bg-critical text-white' : 'bg-thermal text-black'
                       }`}>
                         {spot.riskLevel}
                       </span>
                     </div>
 
-                    <h4 className="font-bold text-white text-sm mb-1 leading-tight">
+                    <h3 className="text-sm font-bold text-white mb-1 leading-tight">
                       {spot.name}
-                    </h4>
-
-                    <p className="text-[11px] text-slate-300 mb-2">
-                      {spot.location} • {spot.state}
+                    </h3>
+                    <p className="text-[11px] text-thermal font-mono mb-2">
+                      {spot.category}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-1 text-[10px] font-mono bg-space-950/80 p-1.5 rounded mb-2 text-slate-300">
-                      <div>FRP: <span className="text-thermal font-bold">{spot.frp} MW</span></div>
-                      <div>Conf: <span className="text-ai-light font-bold">{spot.confidence}%</span></div>
-                      <div>Risk: <span className="text-critical font-bold">{spot.riskScore}/100</span></div>
-                      <div>Sens: <span className="text-white">{spot.satellite.split(' ')[0]}</span></div>
+                    {/* Graphical Metrics Bar */}
+                    <div className="grid grid-cols-2 gap-2 p-2 bg-black/50 rounded-lg border border-white/10 mb-2.5 text-[10px] font-mono">
+                      <div>
+                        <span className="text-slate-400 block">FIRE RADIATIVE POWER</span>
+                        <span className="text-white font-bold text-xs">{spot.frp} MW</span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block">RISK SCORE</span>
+                        <span className={`font-bold text-xs ${isCritical ? 'text-critical' : 'text-thermal'}`}>
+                          {spot.riskScore}/100
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="text-[10px] text-slate-400 mb-3 line-clamp-2">
-                      <span className="text-slate-300 font-semibold">AI:</span> {spot.category} near {spot.nearbyIndustry}
-                    </div>
+                    {/* Enclosed Smoke Plume info */}
+                    {isEnclosed && (
+                      <div className="p-2 mb-2 bg-purple-950/60 rounded border border-purple-500/40 text-[10px] font-mono text-purple-200">
+                        ⚡ <strong>Internal Wire Short:</strong> Roof Smoke AOD {spot.smokeAodIndex || 0.88}
+                      </div>
+                    )}
 
-                    <div className="flex items-center space-x-2">
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-1.5 pt-1">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           soundFx.playAlert();
                           onOpenSmsModal(spot);
                         }}
-                        className="flex-1 py-1.5 px-2 bg-gradient-to-r from-critical/20 to-thermal/20 hover:from-critical hover:to-thermal text-critical-light hover:text-white rounded font-mono font-bold text-[11px] flex items-center justify-center space-x-1.5 transition-all border border-critical/40 shadow-sm"
-                        title="Send tactical SMS with AI root-cause analysis"
+                        className="w-full py-1.5 bg-critical hover:bg-critical-dark text-white rounded text-[10px] font-mono font-bold flex items-center justify-center space-x-1 transition-colors"
                       >
-                        <Smartphone className="w-3.5 h-3.5 text-critical-light" />
+                        <Smartphone className="w-3 h-3" />
                         <span>Send SMS</span>
                       </button>
 
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                        onClick={() => {
                           soundFx.playClick();
                           onSelectHotspot(spot);
                         }}
-                        className="flex-1 py-1.5 px-2 bg-gradient-to-r from-thermal to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded font-mono font-bold text-[11px] flex items-center justify-center space-x-1 shadow-lg transition-all"
+                        className="w-full py-1.5 bg-ai hover:bg-ai-dark text-white rounded text-[10px] font-mono font-bold flex items-center justify-center space-x-1 transition-colors"
                       >
-                        <Eye className="w-3.5 h-3.5" />
+                        <Eye className="w-3 h-3" />
                         <span>Inspect</span>
                       </button>
                     </div>
@@ -749,6 +797,134 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           })}
         </MapContainer>
       </div>
+
+      {/* ── ENCLOSED ELECTRICAL FIRE & SMOKE PLUME RADAR MODAL ── */}
+      {showEnclosedModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-2xl bg-space-900 border border-purple-500/40 rounded-2xl shadow-2xl overflow-hidden glass-card">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-space-950 border-b border-purple-500/30 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <span className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                  <Zap className="w-5 h-5 animate-pulse" />
+                </span>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[10px] font-mono uppercase text-purple-400 font-bold tracking-wider">
+                      NEW SATELLITE INNOVATION ENGINE
+                    </span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-900 text-purple-200 border border-purple-400">
+                      SENTINEL-5P + VIIRS
+                    </span>
+                  </div>
+                  <h3 className="text-base font-black text-white">
+                    Enclosed Electrical Fire & Smoke Pattern Detection
+                  </h3>
+                </div>
+              </div>
+
+              <button
+                onClick={() => { soundFx.playClick(); setShowEnclosedModal(false); }}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body: Physics Breakdown */}
+            <div className="p-6 space-y-4 text-xs font-sans">
+              <p className="text-slate-300 leading-relaxed">
+                When an electrical fire happens inside a sealed concrete/metal building (e.g. server room cable riser, transformer busbar short-circuit), open flames are not immediately exposed to satellite optical cameras. Our engine detects this using a <strong>4-Stage Multi-Spectral Signature</strong>:
+              </p>
+
+              {/* 4-Stage Graphical Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono">
+                <div className="p-3 bg-black/50 rounded-xl border border-purple-500/30">
+                  <div className="flex items-center justify-between text-purple-300 font-bold mb-1">
+                    <span>1. Thermal Conduction</span>
+                    <span className="text-[10px] text-emerald-400">364K - 378K</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-sans">
+                    Internal heat conducted through roof slabs creates an anomalous Longwave IR (LWIR 11µm) footprint without open flame flare.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-black/50 rounded-xl border border-cyan-500/30">
+                  <div className="flex items-center justify-between text-cyan-300 font-bold mb-1">
+                    <span>2. Smoke Aerosol Index</span>
+                    <span className="text-[10px] text-cyan-400">AOD &gt; 0.85</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-sans">
+                    Toxic PVC/hydrocarbon insulation pyrolysis vents through roof HVAC exhaust, creating concentrated carbon aerosol plumes.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-black/50 rounded-xl border border-amber-500/30">
+                  <div className="flex items-center justify-between text-amber-300 font-bold mb-1">
+                    <span>3. Optical Disparity</span>
+                    <span className="text-[10px] text-amber-400">84% Disparity</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-sans">
+                    Zero visual flame footprint paired with high thermal conduction confirms internal enclosed fire rather than routine surface activity.
+                  </p>
+                </div>
+
+                <div className="p-3 bg-black/50 rounded-xl border border-red-500/30">
+                  <div className="flex items-center justify-between text-red-300 font-bold mb-1">
+                    <span>4. Autonomous DDMA Action</span>
+                    <span className="text-[10px] text-red-400">&lt; 90s Dispatch</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-sans">
+                    Instantly triggers electrical grid isolation and dispatches SDRF HazMat teams with CO2/gas suppression guidance.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sample Target Card */}
+              {enclosedModalHotspot && (
+                <div className="p-3.5 bg-purple-950/40 rounded-xl border border-purple-500/40 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-purple-300 font-bold text-[11px]">
+                      LIVE DETECTED TARGET: {enclosedModalHotspot.name}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-critical text-white font-mono text-[9px] font-bold">
+                      {enclosedModalHotspot.riskLevel}
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-xs">
+                    {enclosedModalHotspot.aiReasoning}
+                  </p>
+                </div>
+              )}
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/10">
+                <button
+                  onClick={() => {
+                    if (enclosedModalHotspot) {
+                      setShowEnclosedModal(false);
+                      onOpenSmsModal(enclosedModalHotspot);
+                    }
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-red-600 hover:from-purple-500 hover:to-red-500 text-white font-mono font-bold text-xs rounded-xl shadow-lg transition-all flex items-center space-x-1.5"
+                >
+                  <Smartphone className="w-3.5 h-3.5" />
+                  <span>Send Electrical Emergency Alert</span>
+                </button>
+
+                <button
+                  onClick={() => setShowEnclosedModal(false)}
+                  className="px-4 py-2 bg-white/10 hover:bg-white/15 text-slate-300 text-xs font-mono rounded-xl"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );

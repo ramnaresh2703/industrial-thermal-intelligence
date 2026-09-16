@@ -17,7 +17,8 @@ export interface Hotspot {
     | 'Thermal Power Plant'
     | 'Steel/Smelting Plant'
     | 'Chemical Hazard'
-    | 'Agricultural Burning';
+    | 'Agricultural Burning'
+    | 'Enclosed Electrical & Smoke Anomaly';
   riskLevel: 'CRITICAL' | 'HIGH' | 'MODERATE' | 'LOW';
   riskScore: number; // 0 - 100
   nearbyIndustry: string;
@@ -31,6 +32,9 @@ export interface Hotspot {
   recommendation: string;
   status: 'Critical Alert' | 'Active Flare' | 'Dispatched' | 'Controlled Baseline' | 'Monitoring';
   aiReasoning: string;
+  smokeAodIndex?: number; // Aerosol Optical Depth / Smoke Plume Index (0.0 - 1.0)
+  thermalOpticalDisparity?: number; // Ratio of thermal conduction vs visual open flame (0 - 100%)
+  enclosedStructureRisk?: boolean; // True if fire is inside concrete/metal building with roof smoke venting
   shapValues: {
     feature: string;
     importance: number;
@@ -40,6 +44,80 @@ export interface Hotspot {
 }
 
 export const DEMO_HOTSPOTS: Hotspot[] = [
+  // ==================== ENCLOSED ELECTRICAL & SMOKE PATTERNS (NEW INNOVATION) ====================
+  {
+    id: 'NTRO-ELEC-01',
+    name: 'Okhla Phase-III Industrial Server & Cable Riser Short-Circuit',
+    location: 'Okhla Industrial Area Phase-III',
+    district: 'South East Delhi',
+    state: 'Delhi NCR',
+    region: 'Northern India',
+    lat: 28.5355,
+    lng: 77.2715,
+    frp: 88.4,
+    brightnessTemp: 364.2,
+    confidence: 97.2,
+    category: 'Enclosed Electrical & Smoke Anomaly',
+    riskLevel: 'CRITICAL',
+    riskScore: 92,
+    nearbyIndustry: 'High-Density Telecom & Server Enclosure Facility',
+    distanceToIndustry: 25,
+    historicalCount: 1,
+    detectionTime: '2026-09-16 02:18 UTC',
+    satellite: 'VIIRS NOAA-20',
+    scanAngle: 6.2,
+    landCover: 'Sealed Concrete Industrial Enclosure',
+    windSpeed: '9 km/h E',
+    recommendation: 'CRITICAL ELECTRICAL SHUTOFF: Trigger Substation Breakers 11kV. Vent building toxic smoke & deploy CO2/Inergen gas suppression.',
+    status: 'Critical Alert',
+    aiReasoning: 'Enclosed Electrical Fire Signature: Low visual flame radiance with high LWIR thermal conduction through concrete ceiling (364K) + Sentinel-5P Smoke Aerosol Optical Depth (0.88 AOD). Thermal-to-Optical Disparity confirms internal wiring pyrolysis.',
+    smokeAodIndex: 0.88,
+    thermalOpticalDisparity: 84,
+    enclosedStructureRisk: true,
+    shapValues: [
+      { feature: 'Structural Thermal Disparity', importance: 0.42, impact: 'positive', description: 'Internal heat trapped by building envelope venting through HVAC' },
+      { feature: 'Aerosol Optical Depth (Smoke Plume)', importance: 0.28, impact: 'positive', description: 'AOD 0.88 indicates heavy carbonaceous wiring insulation smoke' },
+      { feature: 'Extreme Urban Proximity', importance: 0.18, impact: 'positive', description: 'Dense commercial cluster within 25m radius' },
+      { feature: 'Zero Baseline Persistence', importance: 0.12, impact: 'positive', description: 'Sudden electrical fault with zero prior thermal history' },
+    ],
+  },
+  {
+    id: 'NTRO-ELEC-02',
+    name: 'Ambattur SIDCO Substation 230kV Switchgear Smoldering Fire',
+    location: 'Ambattur Industrial Estate 3rd Main Rd',
+    district: 'Chennai',
+    state: 'Tamil Nadu',
+    region: 'Tamil Nadu',
+    lat: 13.0982,
+    lng: 80.1624,
+    frp: 112.6,
+    brightnessTemp: 371.8,
+    confidence: 96.8,
+    category: 'Enclosed Electrical & Smoke Anomaly',
+    riskLevel: 'CRITICAL',
+    riskScore: 95,
+    nearbyIndustry: 'TANGEDCO 230kV Grid Substation & Cable Trench',
+    distanceToIndustry: 30,
+    historicalCount: 1,
+    detectionTime: '2026-09-16 03:45 UTC',
+    satellite: 'VIIRS NOAA-20',
+    scanAngle: 8.4,
+    landCover: 'Heavy Electrical Switchgear Grid',
+    windSpeed: '14 km/h NE',
+    recommendation: 'IMMEDIATE GRID ISOLATION: De-energize 230kV Busbar-B. Dispatch Chennai Fire Command HazMat Unit for transformer oil deluge.',
+    status: 'Critical Alert',
+    aiReasoning: 'Substation Transformer Electrical Arc: Moderate 112 MW thermal surge with high LWIR/SWIR ratio inside dielectric transformer housing. Heavy hydrocarbon oil smoke plume detected over 1.2 km corridor.',
+    smokeAodIndex: 0.92,
+    thermalOpticalDisparity: 79,
+    enclosedStructureRisk: true,
+    shapValues: [
+      { feature: 'Transformer Oil Smoke Plume', importance: 0.38, impact: 'positive', description: 'Dense black smoke signature matching mineral oil smolder' },
+      { feature: 'Electrical Infrastructure Buffer', importance: 0.31, impact: 'positive', description: 'Direct overlap with 230kV regional grid node' },
+      { feature: 'Thermal Conduction Gradient', importance: 0.20, impact: 'positive', description: 'Concentrated 371K heat bloom on metal switchgear housing' },
+      { feature: 'Population Density Adjacency', importance: 0.11, impact: 'positive', description: 'Located within 300m of Ambattur residential fringe' },
+    ],
+  },
+
   // ==================== TAMIL NADU (Peninsular Shield) ====================
   {
     id: 'NTRO-TN-01',
