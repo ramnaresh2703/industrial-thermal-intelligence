@@ -71,11 +71,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   const navItems = [
-    { id: 'home',          label: 'Overview',             icon: Satellite },
-    { id: 'dashboard',     label: 'Command Map',          icon: Crosshair,    badge: criticalAlertsCount ? `${criticalAlertsCount}` : undefined },
-    { id: 'explainability',label: 'AI Explainability',    icon: BrainCircuit },
-    { id: 'analytics',     label: 'Analytics Hub',        icon: BarChart3 },
-    { id: 'about',         label: 'Mission Dossier',      icon: FileText },
+    { id: 'dashboard',     label: 'Command Center',       icon: Crosshair,    badge: criticalAlertsCount ? `${criticalAlertsCount}` : undefined },
+    { id: 'explainability',label: 'AI Intelligence & Physics', icon: BrainCircuit },
   ];
 
   return (

@@ -17,6 +17,7 @@ load_dotenv(Path(__file__).parent.parent / ".env")
 from ml_engine import ml_engine
 from firms_service import firms_service
 from sms_service import sms_service
+from occurrence_store import dimension_store
 
 app = FastAPI(
     title="NTRO Industrial Thermal Intelligence API",
@@ -134,15 +135,47 @@ def simulate_dispatch(req: DispatchRequest):
         "message": f"High-priority containment order broadcast for {req.hotspot_id}"
     }
 
+@app.get("/api/occurrences")
+def get_dimension_occurrences():
+    """
+    Returns all tracked coordinate dimensions across India with their verified occurrence history.
+    """
+    records = dimension_store.get_all_occurrences()
+    stats = dimension_store.get_stats()
+    return {
+        "status": "SUCCESS",
+        "count": len(records),
+        "stats": stats,
+        "occurrences": records
+    }
+
+@app.post("/api/occurrences/record")
+def record_dimension_occurrence(hotspot: Dict[str, Any]):
+    """
+    Verifies and records an occurrence for a coordinate dimension.
+    Only stores occurrence if fire is actively verified (FRP >= 10 MW).
+    """
+    result = dimension_store.record_occurrence(hotspot)
+    return result
+
+@app.get("/api/occurrences/stats")
+def get_occurrence_statistics():
+    """
+    Returns national summary metrics for dimensional occurrences.
+    """
+    return dimension_store.get_stats()
+
 @app.get("/api/stats")
 def get_stats():
+    occ_stats = dimension_store.get_stats()
     return {
         "active_satellites": 4,
-        "active_hotspots": 28,
-        "critical_alerts": 7,
+        "active_hotspots": occ_stats.get("active_fire_dimensions", 28),
+        "critical_alerts": occ_stats.get("critical_risk_dimensions", 7),
         "classification_accuracy": 99.1,
         "triage_latency": "< 90s",
-        "area_scanned_km2": "14,842,500"
+        "area_scanned_km2": "14,842,500",
+        "total_dimensional_passes": occ_stats.get("total_satellite_passes_recorded", 75)
     }
 
 # ==================== SERVE PRODUCTION FRONTEND ====================

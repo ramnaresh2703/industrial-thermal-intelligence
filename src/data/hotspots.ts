@@ -35,12 +35,26 @@ export interface Hotspot {
   smokeAodIndex?: number; // Aerosol Optical Depth / Smoke Plume Index (0.0 - 1.0)
   thermalOpticalDisparity?: number; // Ratio of thermal conduction vs visual open flame (0 - 100%)
   enclosedStructureRisk?: boolean; // True if fire is inside concrete/metal building with roof smoke venting
+  dimensionId?: string; // e.g. DIM-11.11N-77.34E (~1.1km grid cell)
+  occurrenceCount?: number; // Total verified fire passes recorded on this dimension
+  isVerifiedActive?: boolean; // True if actively burning on current pass
   shapValues: {
     feature: string;
     importance: number;
     impact: 'positive' | 'negative';
     description: string;
   }[];
+}
+
+// Generates real-time live satellite pass timestamps (Today UTC)
+export function getLivePassUtc(offsetMinutes: number = 0): string {
+  const d = new Date(Date.now() - offsetMinutes * 60 * 1000);
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(d.getUTCDate()).padStart(2, '0');
+  const hh = String(d.getUTCHours()).padStart(2, '0');
+  const min = String(d.getUTCMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} ${hh}:${min} UTC`;
 }
 
 export const DEMO_HOTSPOTS: Hotspot[] = [

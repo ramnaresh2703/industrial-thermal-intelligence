@@ -1,0 +1,302 @@
+{
+  "DIM-11.11N-77.34E": {
+    "dimension_id": "DIM-11.11N-77.34E",
+    "latitude": 11.1085,
+    "longitude": 77.3411,
+    "grid_boundary": "11.1035°N to 11.1135°N, 77.3361°E to 77.3461°E",
+    "target_name": "Tiruppur SIDCO Boiler Complex",
+    "district": "Tiruppur",
+    "state": "Tamil Nadu",
+    "category": "Industrial Fire",
+    "risk_level": "CRITICAL",
+    "risk_score": 94,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 3,
+    "peak_frp_mw": 342.8,
+    "latest_frp_mw": 342.8,
+    "cumulative_energy_mw": 1028.4,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 342.8,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-13.20N-80.33E": {
+    "dimension_id": "DIM-13.20N-80.33E",
+    "latitude": 13.2045,
+    "longitude": 80.3287,
+    "grid_boundary": "13.1995°N to 13.2095°N, 80.3237°E to 80.3337°E",
+    "target_name": "Ennore CPCL Flare Stack",
+    "district": "Chennai",
+    "state": "Tamil Nadu",
+    "category": "Refinery Flare",
+    "risk_level": "MODERATE",
+    "risk_score": 42,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 28,
+    "peak_frp_mw": 182.4,
+    "latest_frp_mw": 182.4,
+    "cumulative_energy_mw": 5107.2,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 182.4,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-28.54N-77.27E": {
+    "dimension_id": "DIM-28.54N-77.27E",
+    "latitude": 28.5355,
+    "longitude": 77.2715,
+    "grid_boundary": "28.5305°N to 28.5405°N, 77.2665°E to 77.2765°E",
+    "target_name": "Okhla Phase-III Cable Riser & Server Fire",
+    "district": "South East Delhi",
+    "state": "Delhi NCR",
+    "category": "Enclosed Electrical & Smoke Anomaly",
+    "risk_level": "CRITICAL",
+    "risk_score": 92,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 2,
+    "peak_frp_mw": 88.4,
+    "latest_frp_mw": 88.4,
+    "cumulative_energy_mw": 176.8,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 88.4,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-13.10N-80.16E": {
+    "dimension_id": "DIM-13.10N-80.16E",
+    "latitude": 13.0982,
+    "longitude": 80.1624,
+    "grid_boundary": "13.0932°N to 13.1032°N, 80.1574°E to 80.1674°E",
+    "target_name": "Ambattur SIDCO Substation 230kV Switchgear",
+    "district": "Chennai",
+    "state": "Tamil Nadu",
+    "category": "Enclosed Electrical & Smoke Anomaly",
+    "risk_level": "CRITICAL",
+    "risk_score": 95,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 1,
+    "peak_frp_mw": 112.6,
+    "latest_frp_mw": 112.6,
+    "cumulative_energy_mw": 112.6,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 112.6,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-11.75N-79.77E": {
+    "dimension_id": "DIM-11.75N-79.77E",
+    "latitude": 11.748,
+    "longitude": 79.7714,
+    "grid_boundary": "11.7430°N to 11.7530°N, 79.7664°E to 79.7764°E",
+    "target_name": "Cuddalore SIPCOT Chemical Storage Zone",
+    "district": "Cuddalore",
+    "state": "Tamil Nadu",
+    "category": "Chemical Hazard",
+    "risk_level": "CRITICAL",
+    "risk_score": 98,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 4,
+    "peak_frp_mw": 418.7,
+    "latest_frp_mw": 418.7,
+    "cumulative_energy_mw": 1674.8,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 418.7,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-16.35N-77.35E": {
+    "dimension_id": "DIM-16.35N-77.35E",
+    "latitude": 16.3533,
+    "longitude": 77.3486,
+    "grid_boundary": "16.3483°N to 16.3583°N, 77.3436°E to 77.3536°E",
+    "target_name": "Raichur Thermal Power Station (RTPS)",
+    "district": "Raichur",
+    "state": "Karnataka",
+    "category": "Thermal Power Plant",
+    "risk_level": "HIGH",
+    "risk_score": 75,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 22,
+    "peak_frp_mw": 530.0,
+    "latest_frp_mw": 530.0,
+    "cumulative_energy_mw": 11660.0,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 530.0,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-30.23N-75.82E": {
+    "dimension_id": "DIM-30.23N-75.82E",
+    "latitude": 30.2345,
+    "longitude": 75.8234,
+    "grid_boundary": "30.2295°N to 30.2395°N, 75.8184°E to 75.8284°E",
+    "target_name": "Sangrur Stubble Burning Cluster",
+    "district": "Sangrur",
+    "state": "Punjab",
+    "category": "Agricultural Burning",
+    "risk_level": "HIGH",
+    "risk_score": 81,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-01 00:00 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 6,
+    "peak_frp_mw": 165.2,
+    "latest_frp_mw": 165.2,
+    "cumulative_energy_mw": 991.2,
+    "satellite_sensors": [
+      "VIIRS NOAA-20",
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 165.2,
+        "status": "VERIFIED_FIRE"
+      }
+    ]
+  },
+  "DIM-20.52N-79.11E": {
+    "dimension_id": "DIM-20.52N-79.11E",
+    "latitude": 20.5169,
+    "longitude": 79.1099,
+    "grid_boundary": "20.5119°N to 20.5219°N, 79.1049°E to 79.1149°E",
+    "target_name": "Active Fire (20.517°N, 79.110°E)",
+    "district": "Satellite Ground Track",
+    "state": "National Territory",
+    "category": "Agricultural Burning",
+    "risk_level": "MODERATE",
+    "risk_score": 40,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-18 07:49 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 1,
+    "peak_frp_mw": 14.68,
+    "latest_frp_mw": 14.68,
+    "cumulative_energy_mw": 14.68,
+    "satellite_sensors": [
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 14.68,
+        "satellite": "MODIS Aqua",
+        "status": "FIRST_PASS_VERIFIED"
+      }
+    ]
+  },
+  "DIM-20.52N-79.12E": {
+    "dimension_id": "DIM-20.52N-79.12E",
+    "latitude": 20.5246,
+    "longitude": 79.1181,
+    "grid_boundary": "20.5196°N to 20.5296°N, 79.1131°E to 79.1231°E",
+    "target_name": "Active Fire (20.525°N, 79.118°E)",
+    "district": "Satellite Ground Track",
+    "state": "National Territory",
+    "category": "Agricultural Burning",
+    "risk_level": "MODERATE",
+    "risk_score": 40,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-18 07:49 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 1,
+    "peak_frp_mw": 16.4,
+    "latest_frp_mw": 16.4,
+    "cumulative_energy_mw": 16.4,
+    "satellite_sensors": [
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 16.4,
+        "satellite": "MODIS Aqua",
+        "status": "FIRST_PASS_VERIFIED"
+      }
+    ]
+  },
+  "DIM-22.17N-79.19E": {
+    "dimension_id": "DIM-22.17N-79.19E",
+    "latitude": 22.1666,
+    "longitude": 79.1948,
+    "grid_boundary": "22.1616°N to 22.1716°N, 79.1898°E to 79.1998°E",
+    "target_name": "Active Fire (22.167°N, 79.195°E)",
+    "district": "Satellite Ground Track",
+    "state": "National Territory",
+    "category": "Agricultural Burning",
+    "risk_level": "MODERATE",
+    "risk_score": 40,
+    "verified_active_fire": true,
+    "first_observed_utc": "2026-09-18 07:49 UTC",
+    "last_observed_utc": "2026-09-18 07:49 UTC",
+    "total_occurrences": 1,
+    "peak_frp_mw": 13.53,
+    "latest_frp_mw": 13.53,
+    "cumulative_energy_mw": 13.53,
+    "satellite_sensors": [
+      "MODIS Aqua"
+    ],
+    "detection_history": [
+      {
+        "time": "2026-09-18 07:49 UTC",
+        "frp": 13.53,
+        "satellite": "MODIS Aqua",
+        "status": "FIRST_PASS_VERIFIED"
+      }
+    ]
+  }
+}

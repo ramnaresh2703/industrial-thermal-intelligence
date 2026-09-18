@@ -75,3 +75,25 @@ export async function fetchBackendStats() {
   if (!res.ok) throw new Error('Failed to fetch stats');
   return res.json();
 }
+
+export async function fetchDimensionOccurrences() {
+  const res = await fetch(`${API_BASE_URL}/api/occurrences`);
+  if (!res.ok) throw new Error('Failed to fetch spatial dimension occurrences');
+  return res.json();
+}
+
+export async function recordDimensionOccurrence(hotspot: any) {
+  const res = await fetch(`${API_BASE_URL}/api/occurrences/record`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(hotspot),
+  });
+  if (!res.ok) throw new Error('Failed to record dimensional occurrence');
+  return res.json();
+}
+
+export async function fetchOccurrenceStats() {
+  const res = await fetch(`${API_BASE_URL}/api/occurrences/stats`);
+  if (!res.ok) throw new Error('Failed to fetch occurrence stats');
+  return res.json();
+}

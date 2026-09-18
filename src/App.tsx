@@ -30,7 +30,7 @@ interface DirectSmsNotification {
 
 export function App() {
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>('home');
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
   const [selectedHotspot, setSelectedHotspot] = useState<Hotspot | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [smsModalHotspot, setSmsModalHotspot] = useState<Hotspot | null>(null);

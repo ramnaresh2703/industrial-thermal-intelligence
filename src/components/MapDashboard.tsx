@@ -34,11 +34,18 @@ import {
   Thermometer,
   X,
   Gauge,
-  Info
+  Info,
+  FileText,
+  Clock,
+  History,
+  TrendingUp,
+  Play,
+  Pause
 } from 'lucide-react';
 import type { Hotspot } from '../data/hotspots';
 import { DEMO_HOTSPOTS } from '../data/hotspots';
-import { fetchLiveFirmsAnomalies } from '../services/api';
+import { fetchLiveFirmsAnomalies, fetchDimensionOccurrences } from '../services/api';
+import { TacticalDossierModal } from './TacticalDossierModal';
 import { soundFx } from '../utils/audio';
 
 interface MapDashboardProps {
@@ -61,14 +68,17 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   onOpenSmsModal,
   selectedHotspot 
 }) => {
+  const [sidebarTab, setSidebarTab] = useState<'incidents' | 'dimensions'>('incidents');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedRisk, setSelectedRisk] = useState<string>('ALL');
   const [selectedRegion, setSelectedRegion] = useState<string>('ALL');
   const [minFRP, setMinFRP] = useState<number>(0);
-  const [isHeatmapMode, setIsHeatmapMode] = useState<boolean>(true);
+  
+  // Tactical modals state
   const [showEnclosedModal, setShowEnclosedModal] = useState<boolean>(false);
   const [enclosedModalHotspot, setEnclosedModalHotspot] = useState<Hotspot | null>(null);
+  const [dossierHotspot, setDossierHotspot] = useState<Hotspot | null>(null);
   
   // Basemap switcher: 'satellite' | 'esri-dark' | 'topo'
   const [basemapMode, setBasemapMode] = useState<'satellite' | 'esri-dark' | 'topo'>('satellite');
@@ -81,6 +91,14 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   const [isSyncingFirms, setIsSyncingFirms] = useState<boolean>(false);
   const [liveSatelliteAnomalies, setLiveSatelliteAnomalies] = useState<Hotspot[]>([]);
   const [firmsSyncCount, setFirmsSyncCount] = useState<number | null>(null);
+
+  // Spatial Dimensions Persisted Backend Data
+  const [dimensionRecords, setDimensionRecords] = useState<any[]>([]);
+  const [dimensionStats, setDimensionStats] = useState<any | null>(null);
+
+  // Auto-Downlink Ticker state
+  const [autoDownlinkActive, setAutoDownlinkActive] = useState<boolean>(true);
+  const [countdownSeconds, setCountdownSeconds] = useState<number>(45);
 
   const categories = [
     'ALL',
@@ -130,54 +148,93 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
     });
   }, [allAvailableHotspots, searchQuery, selectedCategory, selectedRisk, selectedRegion, minFRP]);
 
-  // Automatically downlink live NASA satellite data on component mount
+  // Load dimensional occurrences and initial FIRMS downlink
   useEffect(() => {
     handleSyncLiveFirms();
+    loadDimensionOccurrences();
   }, []);
+
+  // Auto-downlink countdown timer
+  useEffect(() => {
+    if (!autoDownlinkActive) return;
+    const interval = setInterval(() => {
+      setCountdownSeconds(prev => {
+        if (prev <= 1) {
+          handleSyncLiveFirms();
+          loadDimensionOccurrences();
+          return 45;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [autoDownlinkActive]);
+
+  const loadDimensionOccurrences = async () => {
+    try {
+      const res = await fetchDimensionOccurrences();
+      if (res?.occurrences) {
+        setDimensionRecords(res.occurrences);
+        setDimensionStats(res.stats);
+      }
+    } catch (e) {
+      console.warn('Occurrences load:', e);
+    }
+  };
 
   // Trigger live satellite downlink from backend with user's NASA FIRMS key
   const handleSyncLiveFirms = async () => {
     setIsSyncingFirms(true);
     try {
-      const data = await fetchLiveFirmsAnomalies('IND', 3);
+      const data = await fetchLiveFirmsAnomalies('IND', 1);
       if (data && data.anomalies && data.anomalies.length > 0) {
         soundFx.playSuccess();
         setFirmsSyncCount(data.anomalies.length);
         
         // Transform live NASA detections into Hotspot format
-        const converted = data.anomalies.slice(0, 250).map((anom: any, idx: number) => ({
-          id: `NASA-FIRMS-${idx + 1}`,
-          name: anom.target || `NASA VIIRS Sat-Detect #${idx + 1}`,
-          location: `Lat ${anom.latitude.toFixed(3)}, Lng ${anom.longitude.toFixed(3)}`,
-          district: 'Live Orbit Zone',
-          state: 'National Territory',
-          region: 'All India' as const,
-          lat: anom.latitude,
-          lng: anom.longitude,
-          frp: anom.frp || 120.0,
-          brightnessTemp: anom.brightness || 360.0,
-          confidence: anom.confidence === 'high' ? 98.2 : 88.5,
-          category: (anom.frp > 300 ? 'Industrial Fire' : anom.frp > 150 ? 'Forest Fire' : 'Agricultural Burning') as any,
-          riskLevel: (anom.frp > 300 ? 'CRITICAL' : anom.frp > 150 ? 'HIGH' : 'MODERATE') as any,
-          riskScore: Math.min(96, Math.max(35, Math.round((anom.frp || 100) / 4))),
-          nearbyIndustry: 'NASA Earth Observation FIRMS Downlink',
-          distanceToIndustry: 350,
-          historicalCount: 4,
-          detectionTime: anom.acq_time || 'Recent Orbit Pass',
-          satellite: anom.satellite || 'VIIRS NOAA-20',
-          scanAngle: 10.5,
-          landCover: 'Geospatial Radar Mesh',
-          windSpeed: '14 km/h',
-          recommendation: 'Autonomous satellite detection. Transmitted for tactical verification.',
-          status: 'Active Flare' as const,
-          aiReasoning: 'Real-time thermal anomaly detected by NASA VIIRS 375m sensor downlink.',
-          shapValues: [
-            { feature: 'Satellite Radiative Radiance', importance: 0.38, impact: 'positive' as const, description: `${anom.frp} MW measured by VIIRS I-Band` },
-            { feature: 'Sensor Confidence Threshold', importance: 0.25, impact: 'positive' as const, description: `${anom.confidence} detection certainty` },
-          ]
-        }));
+        const converted = data.anomalies.slice(0, 250).map((anom: any, idx: number) => {
+          const latGrid = Math.round(anom.latitude * 100) / 100;
+          const lngGrid = Math.round(anom.longitude * 100) / 100;
+          const dimId = `DIM-${Math.abs(latGrid).toFixed(2)}${latGrid >= 0 ? 'N' : 'S'}-${Math.abs(lngGrid).toFixed(2)}${lngGrid >= 0 ? 'E' : 'W'}`;
+
+          return {
+            id: `NASA-LIVE-${idx + 1}`,
+            name: anom.target || `NASA VIIRS Sat-Detect #${idx + 1}`,
+            location: `Lat ${anom.latitude.toFixed(4)}°, Lng ${anom.longitude.toFixed(4)}°`,
+            district: 'Live Satellite Track',
+            state: 'National Territory',
+            region: 'All India' as const,
+            lat: anom.latitude,
+            lng: anom.longitude,
+            frp: anom.frp || 120.0,
+            brightnessTemp: anom.brightness || 360.0,
+            confidence: anom.confidence === 'high' || anom.confidence === 'h' ? 98.2 : 88.5,
+            category: (anom.frp > 300 ? 'Industrial Fire' : anom.frp > 150 ? 'Forest Fire' : 'Agricultural Burning') as any,
+            riskLevel: (anom.frp > 300 ? 'CRITICAL' : anom.frp > 150 ? 'HIGH' : 'MODERATE') as any,
+            riskScore: Math.min(96, Math.max(35, Math.round((anom.frp || 100) / 4))),
+            nearbyIndustry: 'NASA Earth Observation FIRMS Live Pass',
+            distanceToIndustry: 350,
+            historicalCount: 4,
+            detectionTime: anom.acq_time || 'Live Orbit Pass',
+            satellite: anom.satellite || 'VIIRS NOAA-20',
+            scanAngle: 10.5,
+            landCover: 'Geospatial Radar Mesh',
+            windSpeed: '14 km/h',
+            dimensionId: dimId,
+            occurrenceCount: 1,
+            isVerifiedActive: (anom.frp || 0) >= 10,
+            recommendation: 'Autonomous satellite detection. Transmitted for tactical verification.',
+            status: 'Active Flare' as const,
+            aiReasoning: 'Real-time thermal anomaly detected by NASA VIIRS 375m sensor downlink.',
+            shapValues: [
+              { feature: 'Satellite Radiative Radiance', importance: 0.38, impact: 'positive' as const, description: `${anom.frp} MW measured by VIIRS I-Band` },
+              { feature: 'Sensor Confidence Threshold', importance: 0.25, impact: 'positive' as const, description: `${anom.confidence} detection certainty` },
+            ]
+          };
+        });
 
         setLiveSatelliteAnomalies(converted);
+        loadDimensionOccurrences();
       }
     } catch (e) {
       console.warn('NASA FIRMS auto-downlink:', e);
@@ -214,14 +271,11 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
     const size = isSelected ? 42 : isCritical ? 34 : 26;
     const borderGlow = isSelected ? '3px solid #ffffff' : isCritical ? '2px solid #ffffff' : `2px solid ${color}`;
 
-    // Critical Emergency Strobe Beacon HTML with dual expanding shockwaves
     const html = isCritical ? `
       <div style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center;">
-        <!-- Dual Expanding Sonic Shockwaves for Critical Red Alert -->
         <div class="critical-shockwave"></div>
         <div class="critical-shockwave critical-shockwave-delayed"></div>
         
-        <!-- High-Intensity Flashing Core Strobe -->
         <div class="${pulseClass}" style="
           position: absolute; 
           width: 100%; 
@@ -230,7 +284,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           background: ${ringColor};
         "></div>
         
-        <!-- Center Alert Beacon with Glowing Border -->
         <div style="
           width: ${size * 0.72}px; 
           height: ${size * 0.72}px; 
@@ -254,7 +307,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           `}
         </div>
 
-        <!-- Floating Critical Alert Pill Tag -->
         <div style="
           position: absolute;
           top: -14px;
@@ -326,280 +378,341 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col lg:flex-row bg-[#03050c] text-slate-100 overflow-hidden relative">
       
-      {/* ── LEFT SIDEBAR: Graphical Telemetry Feed & Filters ── */}
-      <div className="w-full lg:w-[410px] flex-shrink-0 bg-space-900/95 backdrop-blur-2xl border-r border-white/10 flex flex-col z-20 shadow-2xl h-[45vh] lg:h-full">
+      {/* ── LEFT SIDEBAR: Unified Telemetry Stream & Spatial Dimension Tracker ── */}
+      <div className="w-full lg:w-[420px] flex-shrink-0 bg-space-900/95 backdrop-blur-2xl border-r border-white/10 flex flex-col z-20 shadow-2xl h-[46vh] lg:h-full">
         
-        {/* Sidebar Header & Live Counters */}
-        <div className="p-3.5 border-b border-white/10 bg-space-950/70">
-          <div className="flex items-center justify-between mb-2.5">
-            <div className="flex items-center space-x-2">
-              <span className="p-1.5 rounded-lg bg-thermal/20 text-thermal border border-thermal/30">
-                <Flame className="w-4 h-4 animate-pulse" />
-              </span>
-              <div>
-                <h2 className="text-xs font-black tracking-wider text-white uppercase flex items-center space-x-1.5">
-                  <span>National Anomaly Feed</span>
-                  <span className="px-1.5 py-0.2 bg-critical/20 text-critical border border-critical/40 rounded text-[9px] font-mono animate-pulse">
-                    LIVE
-                  </span>
-                </h2>
-                <div className="text-[10px] text-slate-400 font-mono flex items-center space-x-2">
-                  <span>{filteredHotspots.length} NODES</span>
-                  <span>•</span>
-                  <span className="text-critical font-bold">
-                    {filteredHotspots.filter(h => h.riskLevel === 'CRITICAL').length} CRITICAL BLINKING
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Enclosed Fire Radar & FIRMS Sync Buttons */}
-            <div className="flex items-center space-x-1.5">
+        {/* Top Switcher: Live Incidents vs Spatial Dimensions */}
+        <div className="p-3 bg-space-950/90 border-b border-white/10 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1.5 p-1 bg-black/60 rounded-xl border border-white/10">
               <button
-                onClick={() => {
-                  soundFx.playClick();
-                  const enc = DEMO_HOTSPOTS.find(h => h.category === 'Enclosed Electrical & Smoke Anomaly');
-                  setEnclosedModalHotspot(enc || null);
-                  setShowEnclosedModal(true);
-                }}
-                className="flex items-center space-x-1 px-2 py-1 bg-purple-950/60 hover:bg-purple-900 text-purple-300 border border-purple-500/40 rounded-lg text-[10px] font-mono font-bold transition-all shadow-sm"
-                title="Enclosed Electrical Fire & Smoke Plume Radar"
+                onClick={() => { soundFx.playClick(); setSidebarTab('incidents'); }}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  sidebarTab === 'incidents'
+                    ? 'bg-thermal text-white shadow-thermal-glow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <Zap className="w-3 h-3 text-purple-400 animate-pulse" />
-                <span className="hidden sm:inline">Smoke Radar</span>
+                <Flame className="w-3.5 h-3.5" />
+                <span>Live Incidents</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded bg-black/40 text-[9px]">
+                  {filteredHotspots.length}
+                </span>
               </button>
 
               <button
-                onClick={handleSyncLiveFirms}
-                disabled={isSyncingFirms}
-                className="flex items-center space-x-1 px-2 py-1 bg-ai/20 hover:bg-ai/30 text-ai-light border border-ai/40 rounded-lg text-[10px] font-mono font-bold transition-all disabled:opacity-50"
-                title="Downlink latest NASA VIIRS passes"
+                onClick={() => { soundFx.playClick(); setSidebarTab('dimensions'); loadDimensionOccurrences(); }}
+                className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+                  sidebarTab === 'dimensions'
+                    ? 'bg-ai text-white shadow-ai-glow'
+                    : 'text-slate-400 hover:text-white'
+                }`}
               >
-                <RefreshCw className={`w-3 h-3 ${isSyncingFirms ? 'animate-spin' : ''}`} />
-                <span>{isSyncingFirms ? 'Syncing' : 'Sync'}</span>
+                <Layers className="w-3.5 h-3.5" />
+                <span>Dimensions</span>
+                <span className="ml-1 px-1.5 py-0.2 rounded bg-black/40 text-[9px]">
+                  {dimensionRecords.length || 7}
+                </span>
               </button>
+            </div>
+
+            {/* Auto-Downlink Pulse Indicator */}
+            <div className="flex items-center space-x-1 text-[10px] font-mono text-slate-400">
+              <button
+                onClick={() => setAutoDownlinkActive(!autoDownlinkActive)}
+                className="p-1 rounded hover:bg-white/10 text-slate-300"
+                title={autoDownlinkActive ? 'Pause auto-downlink' : 'Resume auto-downlink'}
+              >
+                {autoDownlinkActive ? <Pause className="w-3 h-3 text-emerald-400" /> : <Play className="w-3 h-3 text-amber-400" />}
+              </button>
+              <span className="text-emerald-400 font-bold">{countdownSeconds}s</span>
             </div>
           </div>
 
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search target, state, electrical wire short..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 bg-space-800/80 border border-white/10 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-thermal/60 transition-colors"
-            />
+          {/* Search & Enclosed Radar Bar */}
+          <div className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={sidebarTab === 'incidents' ? "Filter target, state, wire short..." : "Filter dimensions (e.g. 11.11N)..."}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-1.5 bg-space-800/90 border border-white/10 rounded-lg text-xs text-white placeholder-slate-400 focus:outline-none focus:border-thermal/60 transition-colors font-mono"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                soundFx.playClick();
+                const enc = DEMO_HOTSPOTS.find(h => h.category === 'Enclosed Electrical & Smoke Anomaly');
+                setEnclosedModalHotspot(enc || null);
+                setShowEnclosedModal(true);
+              }}
+              className="px-2.5 py-1.5 bg-purple-950/70 hover:bg-purple-900 text-purple-300 border border-purple-500/40 rounded-lg text-xs font-mono font-bold flex items-center space-x-1 transition-all shadow-sm"
+              title="Enclosed Electrical Short & Smoke Plume Analysis"
+            >
+              <Zap className="w-3.5 h-3.5 text-purple-400 animate-pulse" />
+              <span className="hidden sm:inline">Smoke Radar</span>
+            </button>
           </div>
 
-          {/* Filter Pills Grid */}
-          <div className="mt-2 grid grid-cols-3 gap-1.5 text-[10px] font-mono">
-            <div>
-              <label className="text-slate-500 block mb-0.5 text-[9px]">REGION</label>
+          {/* Filters Row (Incidents Mode Only) */}
+          {sidebarTab === 'incidents' && (
+            <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono pt-1">
               <select
                 value={selectedRegion}
                 onChange={(e) => handleSelectRegion(e.target.value)}
-                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-ai"
+                className="px-1.5 py-1 bg-space-800 border border-white/10 rounded text-slate-200 text-[10px]"
               >
                 {regions.map((r) => (
                   <option key={r.id} value={r.id}>{r.label.split('(')[0]}</option>
                 ))}
               </select>
-            </div>
 
-            <div>
-              <label className="text-slate-500 block mb-0.5 text-[9px]">CATEGORY</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => { setSelectedCategory(e.target.value); soundFx.playClick(); }}
-                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-ai truncate"
+                className="px-1.5 py-1 bg-space-800 border border-white/10 rounded text-slate-200 text-[10px] truncate"
               >
                 {categories.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-            </div>
 
-            <div>
-              <label className="text-slate-500 block mb-0.5 text-[9px]">RISK TIER</label>
               <select
                 value={selectedRisk}
                 onChange={(e) => { setSelectedRisk(e.target.value); soundFx.playClick(); }}
-                className="w-full px-1.5 py-1 bg-space-800 border border-white/10 rounded text-[10px] text-slate-200 focus:outline-none focus:border-critical"
+                className="px-1.5 py-1 bg-space-800 border border-white/10 rounded text-slate-200 text-[10px]"
               >
                 {riskLevels.map((r) => (
                   <option key={r} value={r}>{r}</option>
                 ))}
               </select>
             </div>
-          </div>
-
-          {/* Mini FRP Range Meter */}
-          <div className="mt-2 flex items-center space-x-2">
-            <div className="text-[9px] font-mono text-slate-400 whitespace-nowrap">
-              MIN FRP: <span className="text-thermal font-bold">{minFRP}MW</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="600"
-              step="25"
-              value={minFRP}
-              onChange={(e) => setMinFRP(Number(e.target.value))}
-              className="flex-1 h-1 bg-space-700 rounded-lg appearance-none cursor-pointer accent-thermal"
-            />
-          </div>
+          )}
         </div>
 
-        {/* ── Hotspots Graphical Alert Cards ── */}
+        {/* ── Content Area: Tab 1 (Incidents) vs Tab 2 (Spatial Dimensions) ── */}
         <div className="flex-1 overflow-y-auto divide-y divide-white/5 scrollbar-thin">
-          {filteredHotspots.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-xs">
-              No thermal hotspots match your filter criteria.
-            </div>
-          ) : (
-            filteredHotspots.map((spot) => {
-              const isSelected = selectedHotspot?.id === spot.id;
-              const isCritical = spot.riskLevel === 'CRITICAL';
-              const isHigh = spot.riskLevel === 'HIGH';
-              const isModerate = spot.riskLevel === 'MODERATE';
-              const isEnclosed = spot.category === 'Enclosed Electrical & Smoke Anomaly';
+          
+          {/* TAB 1: Live Incidents Stream */}
+          {sidebarTab === 'incidents' && (
+            filteredHotspots.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 text-xs font-mono">
+                No thermal hotspots match your filter criteria.
+              </div>
+            ) : (
+              filteredHotspots.map((spot) => {
+                const isSelected = selectedHotspot?.id === spot.id;
+                const isCritical = spot.riskLevel === 'CRITICAL';
+                const isHigh = spot.riskLevel === 'HIGH';
+                const isModerate = spot.riskLevel === 'MODERATE';
+                const isEnclosed = spot.category === 'Enclosed Electrical & Smoke Anomaly';
+                const frpPct = Math.min(100, (spot.frp / 600) * 100);
 
-              const frpPct = Math.min(100, (spot.frp / 600) * 100);
+                return (
+                  <div
+                    key={spot.id}
+                    onClick={() => handleSpotClick(spot)}
+                    className={`p-3 transition-all cursor-pointer group hover:bg-white/5 ${
+                      isSelected ? 'bg-thermal/15 border-l-4 border-thermal' : ''
+                    } ${isCritical ? 'bg-red-950/15' : ''}`}
+                  >
+                    {/* Header */}
+                    <div className="flex items-start justify-between gap-1 mb-1.5">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center space-x-1.5">
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                            isCritical ? 'bg-critical animate-ping' :
+                            isHigh ? 'bg-thermal' :
+                            isModerate ? 'bg-amber-400' : 'bg-geo'
+                          }`} />
+                          <h4 className="text-xs font-bold text-white group-hover:text-thermal transition-colors truncate">
+                            {spot.name.split('–')[0]}
+                          </h4>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center space-x-1 mt-0.5 font-mono">
+                          <MapPin className="w-2.5 h-2.5 text-slate-500" />
+                          <span className="truncate">{spot.district}, {spot.state}</span>
+                          <span>•</span>
+                          <span className="text-cyan-300">{spot.detectionTime.split(' ')[1] || '04:15 UTC'}</span>
+                        </div>
+                      </div>
 
-              return (
-                <div
-                  key={spot.id}
-                  onClick={() => handleSpotClick(spot)}
-                  className={`p-3 transition-all cursor-pointer group hover:bg-white/5 ${
-                    isSelected ? 'bg-thermal/15 border-l-4 border-thermal' : ''
-                  } ${isCritical ? 'bg-red-950/15' : ''}`}
-                >
-                  {/* Card Header: Location + Status Badge */}
-                  <div className="flex items-start justify-between gap-1 mb-1.5">
-                    <div className="flex-1 min-w-0">
+                      <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0 ${
+                        isCritical ? 'bg-critical/20 text-critical-light border border-critical/50 shadow-[0_0_10px_rgba(220,38,38,0.4)] animate-pulse' :
+                        isHigh ? 'bg-thermal/20 text-thermal-light border border-thermal/40' :
+                        isModerate ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                        'bg-geo/20 text-geo-light border border-geo/30'
+                      }`}>
+                        {spot.riskLevel}
+                      </span>
+                    </div>
+
+                    {/* Telemetry Meters */}
+                    <div className="space-y-1.5 my-2">
+                      <div>
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 mb-0.5">
+                          <span className="flex items-center space-x-1">
+                            <Thermometer className="w-2.5 h-2.5 text-thermal" />
+                            <span>FIRE RADIATIVE POWER</span>
+                          </span>
+                          <span className="text-white font-bold">{spot.frp} MW</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-space-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${frpPct}%`,
+                              background: isCritical 
+                                ? 'linear-gradient(90deg, #f97316, #ef4444)' 
+                                : isHigh 
+                                ? 'linear-gradient(90deg, #f59e0b, #f97316)' 
+                                : 'linear-gradient(90deg, #10b981, #f59e0b)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {isEnclosed && (
+                        <div className="px-2 py-1 bg-purple-950/60 rounded-md border border-purple-500/40 flex items-center justify-between text-[9px] font-mono">
+                          <span className="text-purple-300 flex items-center space-x-1 font-bold">
+                            <Zap className="w-2.5 h-2.5 text-purple-400" />
+                            <span>INTERNAL WIRE SHORT</span>
+                          </span>
+                          <span className="text-cyan-300 font-bold">
+                            AOD: {spot.smokeAodIndex || 0.88} SMOKE
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action Bar */}
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1.5 border-t border-white/5">
+                      <div className="flex items-center space-x-2">
+                        <span>Score: <strong className={isCritical ? 'text-critical' : 'text-white'}>{spot.riskScore}/100</strong></span>
+                        <span>•</span>
+                        <span>Passes: <strong className="text-emerald-400">{spot.historicalCount || 1}</strong></span>
+                      </div>
+
                       <div className="flex items-center space-x-1.5">
-                        {/* Flashing Status Dot */}
-                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                          isCritical ? 'bg-critical animate-ping' :
-                          isHigh ? 'bg-thermal' :
-                          isModerate ? 'bg-amber-400' : 'bg-geo'
-                        }`} />
-                        <h4 className="text-xs font-bold text-white group-hover:text-thermal transition-colors truncate">
-                          {spot.name.split('–')[0]}
-                        </h4>
-                      </div>
-                      <div className="text-[10px] text-slate-400 flex items-center space-x-1 mt-0.5">
-                        <MapPin className="w-2.5 h-2.5 text-slate-500" />
-                        <span className="truncate">{spot.district}, {spot.state}</span>
-                      </div>
-                    </div>
-
-                    {/* Risk Badge with Glowing Border */}
-                    <span className={`text-[9px] font-mono font-black px-1.5 py-0.5 rounded uppercase flex-shrink-0 ${
-                      isCritical ? 'bg-critical/20 text-critical-light border border-critical/50 shadow-[0_0_10px_rgba(220,38,38,0.4)] animate-pulse' :
-                      isHigh ? 'bg-thermal/20 text-thermal-light border border-thermal/40' :
-                      isModerate ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                      'bg-geo/20 text-geo-light border border-geo/30'
-                    }`}>
-                      {spot.riskLevel}
-                    </span>
-                  </div>
-
-                  {/* ── Graphical Telemetry Meters ── */}
-                  <div className="space-y-1.5 my-2">
-                    {/* FRP Radiance Progress Bar */}
-                    <div>
-                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 mb-0.5">
-                        <span className="flex items-center space-x-1">
-                          <Thermometer className="w-2.5 h-2.5 text-thermal" />
-                          <span>FIRE POWER (FRP)</span>
-                        </span>
-                        <span className="text-white font-bold">{spot.frp} MW</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-space-800 rounded-full overflow-hidden">
-                        <div 
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${frpPct}%`,
-                            background: isCritical 
-                              ? 'linear-gradient(90deg, #f97316, #ef4444)' 
-                              : isHigh 
-                              ? 'linear-gradient(90deg, #f59e0b, #f97316)' 
-                              : 'linear-gradient(90deg, #10b981, #f59e0b)'
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            soundFx.playClick();
+                            setDossierHotspot(spot);
                           }}
-                        />
+                          className="px-2 py-0.5 rounded bg-blue-950/70 hover:bg-blue-900 text-blue-300 text-[9px] font-mono font-bold flex items-center space-x-1 border border-blue-500/40"
+                          title="Generate official NTRO incident report"
+                        >
+                          <FileText className="w-2.5 h-2.5" />
+                          <span>Dossier</span>
+                        </button>
+
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            soundFx.playAlert();
+                            onOpenSmsModal(spot);
+                          }}
+                          className="px-2 py-0.5 rounded bg-critical/20 hover:bg-critical text-critical-light hover:text-white text-[9px] font-mono font-bold flex items-center space-x-1 transition-all border border-critical/40"
+                        >
+                          <Smartphone className="w-2.5 h-2.5" />
+                          <span>SMS</span>
+                        </button>
                       </div>
                     </div>
-
-                    {/* Enclosed Smoke Plume Indicator if applicable */}
-                    {isEnclosed && (
-                      <div className="px-2 py-1 bg-purple-950/60 rounded-md border border-purple-500/40 flex items-center justify-between text-[9px] font-mono">
-                        <span className="text-purple-300 flex items-center space-x-1 font-bold">
-                          <Zap className="w-2.5 h-2.5 text-purple-400" />
-                          <span>ENCLOSED WIRE SHORT</span>
-                        </span>
-                        <span className="text-cyan-300 font-bold">
-                          AOD: {spot.smokeAodIndex || 0.88} SMOKE
-                        </span>
-                      </div>
-                    )}
                   </div>
+                );
+              })
+            )
+          )}
 
-                  {/* Compact Info Chips */}
-                  <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1.5 border-t border-white/5">
-                    <div className="flex items-center space-x-2">
-                      <span>Score: <strong className={isCritical ? 'text-critical' : 'text-white'}>{spot.riskScore}/100</strong></span>
-                      <span>•</span>
-                      <span>Conf: <strong className="text-ai-light">{spot.confidence}%</strong></span>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center space-x-1.5">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          soundFx.playAlert();
-                          onOpenSmsModal(spot);
-                        }}
-                        className="px-2 py-0.5 rounded bg-critical/20 hover:bg-critical text-critical-light hover:text-white text-[9px] font-mono font-bold flex items-center space-x-1 transition-all border border-critical/40 shadow-sm"
-                        title="Send tactical SMS with AI root-cause analysis"
-                      >
-                        <Smartphone className="w-2.5 h-2.5 text-critical-light" />
-                        <span>SMS</span>
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          soundFx.playClick();
-                          onSelectHotspot(spot);
-                        }}
-                        className="px-2 py-0.5 rounded bg-white/5 hover:bg-thermal/20 hover:text-thermal text-slate-300 text-[9px] font-mono flex items-center space-x-1 transition-colors border border-white/5"
-                      >
-                        <Eye className="w-2.5 h-2.5 text-thermal" />
-                        <span>Inspect</span>
-                      </button>
-                    </div>
+          {/* TAB 2: Spatial Dimension Tracker (Persistent Coordinate Store) */}
+          {sidebarTab === 'dimensions' && (
+            <div className="p-3 space-y-3 font-mono">
+              {/* Summary Stats Banner */}
+              {dimensionStats && (
+                <div className="p-2.5 bg-black/60 rounded-xl border border-ai/30 grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">DIMENSIONS</span>
+                    <span className="text-white font-bold text-xs">{dimensionStats.total_tracked_dimensions}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">ACTIVE FIRES</span>
+                    <span className="text-critical font-bold text-xs">{dimensionStats.active_fire_dimensions}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[9px]">TOTAL PASSES</span>
+                    <span className="text-emerald-400 font-bold text-xs">{dimensionStats.total_satellite_passes_recorded}</span>
                   </div>
                 </div>
-              );
-            })
+              )}
+
+              <p className="text-[10px] text-slate-400 font-sans leading-relaxed">
+                Spatial dimensions cluster coordinates into ~1.1km cells. Detections are recorded <strong>only when active fire (FRP &ge; 10 MW)</strong> is verified by satellite.
+              </p>
+
+              {/* Dimensional Occurrences List */}
+              <div className="space-y-2">
+                {dimensionRecords.map((dim) => {
+                  const isCrit = dim.risk_level === 'CRITICAL';
+
+                  return (
+                    <div 
+                      key={dim.dimension_id}
+                      onClick={() => {
+                        soundFx.playClick();
+                        setMapCenter([dim.latitude, dim.longitude]);
+                        setMapZoom(12);
+                      }}
+                      className="p-2.5 bg-space-800/80 hover:bg-space-800 rounded-xl border border-white/10 transition-all cursor-pointer space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center space-x-1.5">
+                          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+                          <span className="font-bold text-white">{dim.dimension_id}</span>
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded font-bold uppercase ${
+                          isCrit ? 'bg-critical/20 text-critical border border-critical/40' : 'bg-thermal/20 text-thermal'
+                        }`}>
+                          {dim.total_occurrences} Passes
+                        </span>
+                      </div>
+
+                      <div className="text-[11px] text-slate-300 font-sans font-semibold truncate">
+                        {dim.target_name}
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-1 text-[9px] text-slate-400 pt-1 border-t border-white/5">
+                        <div>PEAK: <strong className="text-thermal">{dim.peak_frp_mw} MW</strong></div>
+                        <div>STATUS: <strong className="text-emerald-400">VERIFIED ACTIVE</strong></div>
+                      </div>
+                      <div className="text-[9px] text-slate-500">
+                        LAST PASS: {dim.last_observed_utc}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
+
         </div>
 
         {/* Sidebar Footer */}
         <div className="p-2.5 bg-space-950/90 border-t border-white/10 text-[10px] font-mono text-slate-400 flex items-center justify-between">
           <span className="flex items-center space-x-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-geo animate-pulse" />
-            <span>VIIRS NOAA-20 / MODIS ACTIVE</span>
+            <span>LIVE VIIRS NOAA-20 / MODIS</span>
           </span>
-          <span className="text-thermal font-bold">DEFENSE MESH v2.4</span>
+          <span className="text-thermal font-bold">NTRO DEFENSE v3.0</span>
         </div>
       </div>
 
-      {/* ── RIGHT MAIN: Interactive Map with Critical Blip Strobe ── */}
-      <div className="flex-1 h-[55vh] lg:h-full relative overflow-hidden">
+      {/* ── RIGHT MAIN: Interactive Map with Blinking Critical Strobe ── */}
+      <div className="flex-1 h-[54vh] lg:h-full relative overflow-hidden">
         
         {/* Floating Controls: Basemap Switcher */}
         <div className="absolute top-4 right-4 z-[400] flex flex-col items-end space-y-2">
@@ -642,15 +755,17 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
           </div>
         </div>
 
-        {/* Floating Top Left: Real-Time Critical Alarm Banner */}
-        <div className="absolute top-4 left-4 z-[400] hidden sm:flex items-center space-x-2 bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-critical/40 shadow-lg">
+        {/* Floating Top Left: Live Status Banner */}
+        <div className="absolute top-4 left-4 z-[400] hidden sm:flex items-center space-x-2 bg-black/85 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-critical/50 shadow-2xl font-mono">
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-critical opacity-80" />
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-critical" />
           </span>
-          <span className="text-[11px] font-mono text-white font-bold tracking-wide">
-            CRITICAL BLIPS FLASHING WITH EXPANDING SHOCKWAVES
+          <span className="text-[11px] text-white font-bold tracking-wide">
+            LIVE SATELLITE RADAR: CRITICAL BLIPS FLASHING
           </span>
+          <span className="text-slate-500">•</span>
+          <span className="text-cyan-300 text-[10px]">DIMENSIONAL TRACKING ACTIVE</span>
         </div>
 
         {/* ── Leaflet Interactive Map ── */}
@@ -728,7 +843,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
               >
                 <Popup className="custom-popup">
                   <div className="p-3.5 max-w-[280px] font-sans">
-                    {/* Header with Risk Level */}
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[10px] font-mono text-slate-400">{spot.district}, {spot.state}</span>
                       <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded uppercase ${
@@ -745,8 +859,7 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                       {spot.category}
                     </p>
 
-                    {/* Graphical Metrics Bar */}
-                    <div className="grid grid-cols-2 gap-2 p-2 bg-black/50 rounded-lg border border-white/10 mb-2.5 text-[10px] font-mono">
+                    <div className="grid grid-cols-2 gap-2 p-2 bg-black/50 rounded-lg border border-white/10 mb-2 text-[10px] font-mono">
                       <div>
                         <span className="text-slate-400 block">FIRE RADIATIVE POWER</span>
                         <span className="text-white font-bold text-xs">{spot.frp} MW</span>
@@ -759,15 +872,24 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                       </div>
                     </div>
 
-                    {/* Enclosed Smoke Plume info */}
                     {isEnclosed && (
                       <div className="p-2 mb-2 bg-purple-950/60 rounded border border-purple-500/40 text-[10px] font-mono text-purple-200">
                         ⚡ <strong>Internal Wire Short:</strong> Roof Smoke AOD {spot.smokeAodIndex || 0.88}
                       </div>
                     )}
 
-                    {/* Action Buttons */}
                     <div className="grid grid-cols-2 gap-1.5 pt-1">
+                      <button
+                        onClick={() => {
+                          soundFx.playClick();
+                          setDossierHotspot(spot);
+                        }}
+                        className="w-full py-1.5 bg-blue-900 hover:bg-blue-800 text-white rounded text-[10px] font-mono font-bold flex items-center justify-center space-x-1 transition-colors"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>Dossier</span>
+                      </button>
+
                       <button
                         onClick={() => {
                           soundFx.playAlert();
@@ -778,17 +900,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                         <Smartphone className="w-3 h-3" />
                         <span>Send SMS</span>
                       </button>
-
-                      <button
-                        onClick={() => {
-                          soundFx.playClick();
-                          onSelectHotspot(spot);
-                        }}
-                        className="w-full py-1.5 bg-ai hover:bg-ai-dark text-white rounded text-[10px] font-mono font-bold flex items-center justify-center space-x-1 transition-colors"
-                      >
-                        <Eye className="w-3 h-3" />
-                        <span>Inspect</span>
-                      </button>
                     </div>
                   </div>
                 </Popup>
@@ -798,12 +909,20 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
         </MapContainer>
       </div>
 
-      {/* ── ENCLOSED ELECTRICAL FIRE & SMOKE PLUME RADAR MODAL ── */}
+      {/* ── TACTICAL INCIDENT DOSSIER MODAL ── */}
+      {dossierHotspot && (
+        <TacticalDossierModal
+          hotspot={dossierHotspot}
+          onClose={() => setDossierHotspot(null)}
+          onOpenSmsModal={onOpenSmsModal}
+        />
+      )}
+
+      {/* ── ENCLOSED ELECTRICAL FIRE & SMOKE RADAR MODAL ── */}
       {showEnclosedModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
           <div className="relative w-full max-w-2xl bg-space-900 border border-purple-500/40 rounded-2xl shadow-2xl overflow-hidden glass-card">
             
-            {/* Modal Header */}
             <div className="px-6 py-4 bg-space-950 border-b border-purple-500/30 flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <span className="p-2 rounded-xl bg-purple-500/20 text-purple-300 border border-purple-500/40">
@@ -832,13 +951,11 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
               </button>
             </div>
 
-            {/* Modal Body: Physics Breakdown */}
             <div className="p-6 space-y-4 text-xs font-sans">
               <p className="text-slate-300 leading-relaxed">
                 When an electrical fire happens inside a sealed concrete/metal building (e.g. server room cable riser, transformer busbar short-circuit), open flames are not immediately exposed to satellite optical cameras. Our engine detects this using a <strong>4-Stage Multi-Spectral Signature</strong>:
               </p>
 
-              {/* 4-Stage Graphical Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 font-mono">
                 <div className="p-3 bg-black/50 rounded-xl border border-purple-500/30">
                   <div className="flex items-center justify-between text-purple-300 font-bold mb-1">
@@ -881,7 +998,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                 </div>
               </div>
 
-              {/* Sample Target Card */}
               {enclosedModalHotspot && (
                 <div className="p-3.5 bg-purple-950/40 rounded-xl border border-purple-500/40 space-y-2">
                   <div className="flex items-center justify-between">
@@ -898,7 +1014,6 @@ export const MapDashboard: React.FC<MapDashboardProps> = ({
                 </div>
               )}
 
-              {/* Modal Actions */}
               <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/10">
                 <button
                   onClick={() => {
